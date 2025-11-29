@@ -183,12 +183,12 @@ mod tests {
         assert!(quote.close > rust_decimal::Decimal::ZERO);
     }
 
-    #[test]
-    fn test_min_date_validation() {
+    #[tokio::test]
+    async fn test_min_date_validation() {
         let client = SjcClient::new();
         let old_date = NaiveDate::from_ymd_opt(2015, 1, 1).unwrap();
 
-        let result = tokio_test::block_on(client.get_gold_price(old_date));
+        let result = client.get_gold_price(old_date).await;
 
         assert!(matches!(result, Err(VnMarketError::InvalidDate(_))));
     }

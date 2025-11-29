@@ -12,8 +12,10 @@ pub mod cache;
 pub mod clients;
 pub mod errors;
 pub mod models;
+pub mod service;
 pub mod utils;
 
 pub use cache::{VnAssetType, VnHistoricalCache, VnHistoricalRecord, VnQuoteCache};
 pub use clients::{FMarketClient, SjcClient, VciClient};
 pub use errors::VnMarketError;
+pub use service::{SearchResult, VnMarketService};
