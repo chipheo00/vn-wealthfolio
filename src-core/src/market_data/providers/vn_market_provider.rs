@@ -3,6 +3,8 @@ use std::time::SystemTime;
 
 use async_trait::async_trait;
 use chrono::Utc;
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::SqliteConnection;
 use tokio::sync::RwLock;
 
 use crate::market_data::market_data_errors::MarketDataError;
@@ -17,6 +19,8 @@ use crate::vn_market::{
     service::VnMarketService,
 };
 
+type DbPool = Pool<ConnectionManager<SqliteConnection>>;
+
 /// Vietnamese market provider using native Rust clients
 pub struct VnMarketProvider {
     service: Arc<RwLock<VnMarketService>>,
@@ -24,10 +28,18 @@ pub struct VnMarketProvider {
 }
 
 impl VnMarketProvider {
-    /// Create a new VN Market Provider
+    /// Create a new VN Market Provider without historical cache
     pub fn new() -> Self {
         Self {
             service: Arc::new(RwLock::new(VnMarketService::new())),
+            initialized: Arc::new(RwLock::new(false)),
+        }
+    }
+
+    /// Create a new VN Market Provider with historical cache (DB-backed)
+    pub fn with_pool(pool: DbPool) -> Self {
+        Self {
+            service: Arc::new(RwLock::new(VnMarketService::with_pool(pool))),
             initialized: Arc::new(RwLock::new(false)),
         }
     }
