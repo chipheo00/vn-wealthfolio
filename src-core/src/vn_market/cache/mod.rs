@@ -1,13 +1,13 @@
 //! Caching layer for VN Market data
 //!
-//! This module will be implemented in Phase 3.
-//! For now, it provides placeholder types.
+//! Provides two types of caching:
+//! - Historical Cache: SQLite-based persistent cache for historical records
+//! - Quote Cache: In-memory cache with TTL for latest quotes
 
-// TODO: Phase 3 - Implement historical cache with SQLite
-// TODO: Phase 3 - Implement quote cache with moka
+pub mod historical_cache;
+pub mod models;
+pub mod quote_cache;
 
-/// Placeholder for historical data cache
-pub struct VnHistoricalCache;
-
-/// Placeholder for quote cache
-pub struct VnQuoteCache;
+pub use historical_cache::VnHistoricalCache;
+pub use models::{VnAssetType, VnHistoricalRecord, VnHistoricalRecordDb};
+pub use quote_cache::VnQuoteCache;

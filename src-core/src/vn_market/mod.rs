@@ -8,10 +8,12 @@
 //! - FMarket: Mutual Funds
 //! - SJC: Gold Prices
 
+pub mod cache;
 pub mod clients;
 pub mod errors;
 pub mod models;
 pub mod utils;
 
+pub use cache::{VnAssetType, VnHistoricalCache, VnHistoricalRecord, VnQuoteCache};
 pub use clients::{FMarketClient, SjcClient, VciClient};
 pub use errors::VnMarketError;
