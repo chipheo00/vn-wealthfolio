@@ -1,19 +1,13 @@
 [package]
-name = "wealthfolio_core"
-version = "2.0.1"
-description = "An Open Source Desktop Portfolio tracker"
-authors = ["Aziz Fadil"]
+name = "wealthvn_core"
+version = "1.0.0"
+description = "A Portfolio Tracker for Vietnamese Market"
+authors = ["Chipheo00 - CFPM Inc. WealthVN Team"]
 license = "AGPL-3.0"
-repository = "https://github.com/afadil/wealthfolio"
+repository = "https://github.com/chipheo00/vn-wealthfolio"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-
-
-[features]
-default = []
-wealthfolio-pro = []
 
 [dependencies]
 anyhow = "1"
@@ -33,10 +27,11 @@ async-trait = "0.1"
 rust_decimal = { version = "1.37", features = ["maths","serde-float"] }
 num-traits = "0.2"
 rust_decimal_macros = "1.37"
-serde_with = "3"
+serde_with = "3.4"
+keyring = "2"
 urlencoding = "2"
 csv = "1.4.0"
-zip = "2.2.0"
+zip = "0.6"
 
 # SQLite / Diesel
 rusqlite = { version = "0.34", features = ["bundled"] }
@@ -47,6 +42,25 @@ r2d2 = "0.8"
 # Runtime
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
 
+# In-memory cache with TTL (for VN market quote caching)
+moka = { version = "0.12", features = ["future"] }
+
+# Optional: crypto identity (public-key IDs)
+ed25519-dalek = { version = "2.2", features = ["serde", "rand_core"], optional = true }
+rand_core = { version = "0.6", features = ["getrandom"], optional = true }
+
+# Optional: pro-only sync engine
+# wealthfolio_sync = { path = "../../wealthfolio-pro/wealthfolio-sync", package = "wealthfolio-sync", optional = true, default-features = false }
+
+
+[features]
+default = ["p2p", "tls"]          # For Tauri app builds
+p2p = []
+tls = []
+crypto-id = ["ed25519-dalek", "rand_core"]
+wealthfolio-pro = []
+# wealthfolio-pro-sync = ["wealthfolio_sync/sync"]
+# pro = ["wealthfolio-pro"]
+
 
 [dev-dependencies]
-tempfile = "3"

@@ -9,33 +9,35 @@ import {
   FormMessage,
   MoneyInput,
   QuantityInput,
-} from "@wealthfolio/ui";
-import { ConfigurationCheckbox, CommonFields, AssetSymbolInput } from "./common";
-import { AccountSelectOption } from "../activity-form";
-import {
-  ActivityTypeSelector,
-  type ActivityType as ActivityTypeUI,
-} from "../activity-type-selector";
-import { CashBalanceWarning } from "../cash-balance-warning";
+} from "@wealthvn/ui";
+import { ConfigurationCheckbox, CommonFields, AssetSymbolInput } from "@/pages/activity/components/forms/common";
+import { ActivityTypeSelector, type ActivityType as ActivityTypeUI } from "@/pages/activity/components/activity-type-selector";
+import { CashBalanceWarning } from "@/pages/activity/components/cash-balance-warning";
+import { useTranslation } from "react-i18next";
+
+interface AccountSelectOption {
+  value: string;
+  label: string;
+  currency: string;
+}
 
 export const TradeForm = ({ accounts }: { accounts: AccountSelectOption[] }) => {
   const { control, watch } = useFormContext();
+  const { t } = useTranslation(["activity"]);
   const isManualAsset = watch("assetDataSource") === "MANUAL";
 
   const tradeTypes: ActivityTypeUI[] = [
     {
       value: "BUY",
-      label: "Buy",
+      label: t("activity:form.buy"),
       icon: "ArrowDown",
-      description:
-        "Purchase an asset. This increases your holding quantity and decreases your cash balance.",
+      description: t("activity:form.buyDescription"),
     },
     {
       value: "SELL",
-      label: "Sell",
+      label: t("activity:form.sell"),
       icon: "ArrowUp",
-      description:
-        "Sell an asset. This decreases your holding quantity and increases your cash balance.",
+      description: t("activity:form.sellDescription"),
     },
   ];
 
@@ -61,7 +63,7 @@ export const TradeForm = ({ accounts }: { accounts: AccountSelectOption[] }) => 
               name="quantity"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Shares</FormLabel>
+                  <FormLabel>{t("activity:form.shares")}</FormLabel>
                   <FormControl>
                     <QuantityInput {...field} aria-label="Shares" />
                   </FormControl>
@@ -74,7 +76,7 @@ export const TradeForm = ({ accounts }: { accounts: AccountSelectOption[] }) => 
               name="unitPrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price</FormLabel>
+                  <FormLabel>{t("activity:form.price")}</FormLabel>
                   <FormControl>
                     <MoneyInput {...field} aria-label="Price" />
                   </FormControl>
@@ -87,7 +89,7 @@ export const TradeForm = ({ accounts }: { accounts: AccountSelectOption[] }) => 
               name="fee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Fee</FormLabel>
+                  <FormLabel>{t("activity:form.fee")}</FormLabel>
                   <FormControl>
                     <MoneyInput {...field} aria-label="Fee" />
                   </FormControl>

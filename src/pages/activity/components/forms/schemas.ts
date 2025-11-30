@@ -1,5 +1,5 @@
+import { ActivityType, dataSourceSchema } from "@/lib/constants";
 import { z } from "zod";
-import { ActivityType, DataSource } from "@/lib/constants";
 
 export const baseActivitySchema = z.object({
   id: z.string().uuid().optional(),
@@ -25,7 +25,7 @@ export const holdingsActivitySchema = baseActivitySchema.extend({
       invalid_type_error: "Average cost must be a number.",
     })
     .positive(),
-  assetDataSource: z.enum([DataSource.YAHOO, DataSource.MANUAL]).default(DataSource.YAHOO),
+  assetDataSource: dataSourceSchema.default("YAHOO"),
 });
 
 export const bulkHoldingRowSchema = z.object({
@@ -46,6 +46,7 @@ export const bulkHoldingRowSchema = z.object({
     .positive({ message: "Average cost must be greater than 0" }),
   totalValue: z.number().optional(),
   assetId: z.string().optional(),
+  isManual: z.boolean().optional().default(false),
 });
 
 export const bulkHoldingsFormSchema = baseActivitySchema.extend({
@@ -74,7 +75,7 @@ export const tradeActivitySchema = baseActivitySchema.extend({
     })
     .min(0, { message: "Fee must be a non-negative number." })
     .default(0),
-  assetDataSource: z.enum([DataSource.YAHOO, DataSource.MANUAL]).default(DataSource.YAHOO),
+  assetDataSource: dataSourceSchema.default("YAHOO"),
 });
 
 export const cashActivitySchema = baseActivitySchema.extend({
@@ -83,8 +84,10 @@ export const cashActivitySchema = baseActivitySchema.extend({
     ActivityType.WITHDRAWAL,
     ActivityType.TRANSFER_IN,
     ActivityType.TRANSFER_OUT,
+    ActivityType.TRANSFER,
   ]),
   assetId: z.string().optional(),
+  toAccountId: z.string().optional(),
   amount: z.coerce
     .number({
       required_error: "Please enter a valid amount.",
@@ -98,7 +101,7 @@ export const cashActivitySchema = baseActivitySchema.extend({
     .min(0, { message: "Fee must be a non-negative number." })
     .default(0)
     .optional(),
-  assetDataSource: z.enum([DataSource.YAHOO, DataSource.MANUAL]).default(DataSource.MANUAL),
+  assetDataSource: dataSourceSchema.default("MANUAL"),
 });
 
 export const incomeActivitySchema = baseActivitySchema.extend({
@@ -122,7 +125,7 @@ export const incomeActivitySchema = baseActivitySchema.extend({
 
 export const otherActivitySchema = baseActivitySchema.extend({
   activityType: z.enum([ActivityType.SPLIT, ActivityType.TAX, ActivityType.FEE]),
-  assetId: z.string().min(1, { message: "Please select a security" }).optional(),
+  assetId: z.string().min(1, { message: 'Please select a security' }).optional(),
   amount: z.coerce.number().min(0).optional(),
   quantity: z.coerce.number().nonnegative().optional(),
   fee: z.coerce
@@ -148,4 +151,6 @@ export const newActivitySchema = z
     }),
   );
 
-export type NewActivityFormValues = z.infer<typeof newActivitySchema>;
+export type NewActivityFormValues = z.infer<typeof newActivitySchema> & {
+  showCurrencySelect?: boolean;
+};

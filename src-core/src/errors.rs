@@ -223,3 +223,10 @@ impl From<Error> for String {
         err.to_string()
     }
 }
+
+// Add From implementation for keyring::Error
+impl From<keyring::Error> for Error {
+    fn from(err: keyring::Error) -> Self {
+        Error::Secret(err.to_string())
+    }
+}

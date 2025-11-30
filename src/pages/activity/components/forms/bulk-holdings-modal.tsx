@@ -11,13 +11,15 @@ import {
   DialogHeader,
   DialogTitle,
   Form,
-} from "@wealthfolio/ui";
+} from "@wealthvn/ui";
 import { useCallback, useEffect, useState } from "react";
-import { FormProvider, useForm, type Resolver, type SubmitHandler } from "react-hook-form";
+import { FormProvider, useForm, type Resolver } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useActivityImportMutations } from "../../import/hooks/use-activity-import-mutations";
 import { BulkHoldingsForm } from "./bulk-holdings-form";
 import { bulkHoldingsFormSchema } from "./schemas";
+import { searchTicker } from "@/commands/market-data";
 
 type BulkHoldingsFormValues = z.infer<typeof bulkHoldingsFormSchema>;
 
@@ -28,7 +30,10 @@ interface BulkHoldingsModalProps {
 }
 
 export const BulkHoldingsModal = ({ open, onClose, onSuccess }: BulkHoldingsModalProps) => {
+  const { t } = useTranslation(["activity", "common"]);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [manualHoldings, setManualHoldings] = useState<Set<string>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<BulkHoldingsFormValues>({
     resolver: zodResolver(bulkHoldingsFormSchema) as Resolver<BulkHoldingsFormValues>,
@@ -36,7 +41,7 @@ export const BulkHoldingsModal = ({ open, onClose, onSuccess }: BulkHoldingsModa
     defaultValues: {
       accountId: "",
       activityDate: new Date(),
-      currency: "USD",
+      currency: "",
       isDraft: false,
       comment: "",
       holdings: [
@@ -83,6 +88,12 @@ export const BulkHoldingsModal = ({ open, onClose, onSuccess }: BulkHoldingsModa
         shouldValidate: true,
         shouldDirty: true,
       });
+
+      // Sync currency with selected account
+      form.setValue("currency", account?.currency || "USD", {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
     },
     [form],
   );
@@ -90,70 +101,116 @@ export const BulkHoldingsModal = ({ open, onClose, onSuccess }: BulkHoldingsModa
   const { confirmImportMutation } = useActivityImportMutations({
     onSuccess: () => {
       toast({
-        title: "Import successful",
-        description: "Holdings have been imported successfully.",
+        title: t("activity:form.importSuccessTitle"),
+        description: t("activity:form.importSuccessDescription"),
         variant: "default",
       });
       form.reset();
       setSelectedAccount(null);
+      setIsSubmitting(false);
       onSuccess?.();
       onClose();
     },
+    onError: () => {
+      setIsSubmitting(false);
+    },
   });
 
-  const handleSubmit: SubmitHandler<BulkHoldingsFormValues> = useCallback(
-    (data) => {
-      // Validate holdings data
-      const validHoldings = data.holdings.filter(
-        (holding) =>
-          holding.ticker?.trim() &&
-          Number(holding.sharesOwned) > 0 &&
-          Number(holding.averageCost) > 0,
-      );
-
-      if (!validHoldings.length) {
-        toast({
-          title: "No valid holdings",
-          description:
-            "Please add at least one valid holding with ticker, shares, and average cost.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Transform to ActivityImport format
-      const activitiesToImport: ActivityImport[] = validHoldings.map((holding) => ({
-        accountId: data.accountId,
-        activityType: ActivityType.ADD_HOLDING,
-        symbol: holding.ticker.toUpperCase().trim(),
-        quantity: Number(holding.sharesOwned),
-        unitPrice: Number(holding.averageCost),
-        date: data.activityDate,
-        currency: data.currency || selectedAccount?.currency || "USD",
-        fee: 0,
-        isDraft: false,
-        isValid: true,
-        comment: data.comment || "",
-      }));
-
-      confirmImportMutation.mutate({ activities: activitiesToImport });
-    },
-    [confirmImportMutation, selectedAccount],
-  );
-
-  const handleFormError = useCallback((errors: Record<string, any>) => {
-    // Get the first error message to display
-    const firstError = Object.values(errors)[0];
-    const errorMessage = firstError?.message || "Please check the form for errors.";
-
-    toast({
-      title: "Form validation failed",
-      description: errorMessage,
-      variant: "destructive",
-    });
+  // Function to check if a symbol exists in market data
+  const checkSymbolExists = useCallback(async (symbol: string): Promise<boolean> => {
+    try {
+      const results = await searchTicker(symbol);
+      return results && results.length > 0;
+    } catch (error) {
+      // Log error for debugging
+      console.error("Ticker search failed for symbol:", symbol, error);
+      // If search fails, assume symbol doesn't exist
+      return false;
+    }
   }, []);
 
+  const handleSubmit = useCallback(
+    async (data: BulkHoldingsFormValues) => {
+      // Set immediate loading state
+      setIsSubmitting(true);
+
+      try {
+        // Validate holdings data
+        const validHoldings = data.holdings.filter(
+          (holding) =>
+            holding.ticker?.trim() &&
+            Number(holding.sharesOwned) > 0 &&
+            Number(holding.averageCost) > 0,
+        );
+
+        if (!validHoldings.length) {
+          toast({
+            title: t("activity:form.noValidHoldings"),
+            description: t("activity:form.noValidHoldingsDescription"),
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Check which symbols exist in market data
+        const symbolChecks = await Promise.all(
+          validHoldings.map(async (holding) => {
+            const symbol = holding.ticker.toUpperCase().trim();
+            const isAlreadyMarkedManual = manualHoldings.has(holding.id);
+            const symbolExists = await checkSymbolExists(symbol);
+
+            // Mark as manual if either: already marked as manual OR symbol doesn't exist in market data
+            const shouldBeManual = isAlreadyMarkedManual || !symbolExists;
+
+            return { holding, shouldBeManual };
+          }),
+        );
+
+        // Transform to ActivityImport format
+        const activitiesToImport: ActivityImport[] = symbolChecks.map(
+          ({ holding, shouldBeManual }) => ({
+            accountId: data.accountId,
+            activityType: ActivityType.ADD_HOLDING,
+            symbol: holding.ticker.toUpperCase().trim(),
+            quantity: Number(holding.sharesOwned),
+            unitPrice: Number(holding.averageCost),
+            date: data.activityDate,
+            currency: data.currency || selectedAccount?.currency || "USD",
+            fee: 0,
+            isDraft: false,
+            isValid: true,
+            comment: data.comment || `Bulk import - ${validHoldings.length} holdings`,
+            assetDataSource: shouldBeManual ? "MANUAL" : undefined,
+          }),
+        );
+
+        confirmImportMutation.mutate({ activities: activitiesToImport });
+      } catch (error) {
+        console.error("Error submitting bulk holdings:", error);
+        setIsSubmitting(false);
+      }
+    },
+    [confirmImportMutation, selectedAccount, manualHoldings, checkSymbolExists],
+  );
+
+  const handleFormError = useCallback(
+    (errors: Record<string, any>) => {
+      // Get the first error message to display
+      const firstError = Object.values(errors)[0];
+      const errorMessage = firstError?.message || t("activity:form.checkFormErrors");
+
+      toast({
+        title: t("activity:form.formValidationFailed"),
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+    [t],
+  );
+
   const isSubmitDisabled =
+    isSubmitting ||
     confirmImportMutation.isPending ||
     !hasValidHoldings ||
     !selectedAccount ||
@@ -163,25 +220,25 @@ export const BulkHoldingsModal = ({ open, onClose, onSuccess }: BulkHoldingsModa
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Portfolio</DialogTitle>
-          <DialogDescription>
-            Quickly add multiple holdings to your portfolio. Enter your current positions with
-            ticker symbols, quantities, and average costs.
-          </DialogDescription>
+          <DialogTitle>{t("activity:form.bulkHoldingsTitle")}</DialogTitle>
+          <DialogDescription>{t("activity:form.bulkHoldingsDescription")}</DialogDescription>
         </DialogHeader>
 
         <FormProvider {...form}>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit, handleFormError)} className="space-y-6">
               <div className="py-4">
-                <BulkHoldingsForm onAccountChange={handleAccountChange} />
+                <BulkHoldingsForm
+                  onAccountChange={handleAccountChange}
+                  onManualHoldingsChange={setManualHoldings}
+                />
               </div>
 
               {/* Display validation errors */}
               {Object.keys(form.formState.errors).length > 0 && (
                 <div className="border-destructive/50 bg-destructive/10 rounded-lg border p-4">
                   <h4 className="text-destructive mb-2 text-sm font-medium">
-                    Please fix the following errors:
+                    {t("activity:form.pleaseFixErrors")}
                   </h4>
                   <ul className="text-destructive/80 space-y-1 text-sm">
                     {form.formState.errors.accountId && (
@@ -199,10 +256,14 @@ export const BulkHoldingsModal = ({ open, onClose, onSuccess }: BulkHoldingsModa
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
+                  {t("common:actions.cancel")}
                 </Button>
                 <Button type="submit" disabled={isSubmitDisabled}>
-                  {confirmImportMutation.isPending ? "Importing..." : "Confirm"}
+                  {confirmImportMutation.isPending
+                    ? t("activity:form.importing")
+                    : isSubmitting
+                      ? t("activity:form.validating")
+                      : t("activity:form.confirm")}
                 </Button>
               </DialogFooter>
             </form>

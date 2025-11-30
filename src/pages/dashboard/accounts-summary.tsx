@@ -9,8 +9,9 @@ import { useLatestValuations } from "@/hooks/use-latest-valuations";
 import { useSettingsContext } from "@/lib/settings-provider";
 import type { AccountValuation } from "@/lib/types";
 import { calculatePerformanceMetrics } from "@/lib/utils";
-import { GainAmount, GainPercent, PrivacyAmount } from "@wealthfolio/ui";
+import { GainAmount, GainPercent, PrivacyAmount } from "@wealthvn/ui";
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 interface AccountSummaryDisplayData {
@@ -55,6 +56,7 @@ const AccountSummaryComponent = React.memo(
     isLoadingValuation = false,
     displayInAccountCurrency = false,
     isNested = false,
+    t,
   }: {
     item: AccountSummaryDisplayData;
     isExpanded?: boolean;
@@ -62,6 +64,7 @@ const AccountSummaryComponent = React.memo(
     isLoadingValuation?: boolean;
     displayInAccountCurrency?: boolean;
     isNested?: boolean;
+    t: any;
   }) => {
     const isGroup = item.isGroup ?? false;
     const useAccountCurrency =
@@ -89,8 +92,8 @@ const AccountSummaryComponent = React.memo(
 
     const subText = isGroup
       ? useAccountCurrency
-        ? `${item.accountCurrency} • ${item.accountCount} ${item.accountCount === 1 ? "account" : "accounts"}`
-        : `${item.accountCount} ${item.accountCount === 1 ? "account" : "accounts"}`
+        ? `${item.accountCurrency} • ${t("common:common.accountCount", { count: item.accountCount })}`
+        : t("common:common.accountCount", { count: item.accountCount })
       : useAccountCurrency
         ? (item.accountCurrency ?? item.baseCurrency)
         : item.baseCurrency;
@@ -207,6 +210,7 @@ const AccountSummaryComponent = React.memo(
 AccountSummaryComponent.displayName = "AccountSummaryComponent";
 
 export const AccountsSummary = React.memo(() => {
+  const { t } = useTranslation(["dashboard", "common"]);
   const { accountsGrouped, setAccountsGrouped, settings } = useSettingsContext();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
@@ -294,7 +298,7 @@ export const AccountsSummary = React.memo(() => {
       return (
         <div className="border-destructive/30 bg-destructive/5 rounded-lg border p-4 md:p-5">
           <p className="text-destructive text-sm font-medium">
-            Error loading accounts: {errorAccounts?.message}
+            {t("accounts.errorLoading", { error: errorAccounts?.message })}
           </p>
         </div>
       );
@@ -303,7 +307,7 @@ export const AccountsSummary = React.memo(() => {
     if (!combinedAccountViews || combinedAccountViews.length === 0) {
       return (
         <div className="border-border/50 bg-secondary/30 rounded-lg border p-6 text-center md:p-8">
-          <p className="text-muted-foreground text-sm">No accounts found.</p>
+          <p className="text-muted-foreground text-sm">{t("accounts.noAccountsFound")}</p>
         </div>
       );
     }
@@ -315,8 +319,8 @@ export const AccountsSummary = React.memo(() => {
       const standaloneAccounts: AccountSummaryDisplayData[] = [];
 
       combinedAccountViews.forEach((account) => {
-        const groupName = account.accountGroup ?? "Uncategorized";
-        if (groupName === "Uncategorized") {
+        const groupName = account.accountGroup ?? t("accounts.uncategorized");
+        if (groupName === t("accounts.uncategorized")) {
           standaloneAccounts.push(account);
         } else {
           if (!groups[groupName]) {
@@ -434,6 +438,7 @@ export const AccountsSummary = React.memo(() => {
                     item={group}
                     isExpanded={isExpanded}
                     onToggle={() => toggleGroup(group.accountName)}
+                    t={t}
                   />
                 </div>
                 {isExpanded && (
@@ -446,6 +451,7 @@ export const AccountsSummary = React.memo(() => {
                             isLoadingValuation={isLoadingPerformance}
                             displayInAccountCurrency
                             isNested
+                            t={t}
                           />
                         </div>
                       ))}
@@ -460,7 +466,8 @@ export const AccountsSummary = React.memo(() => {
               key={account.accountId}
               item={account}
               isLoadingValuation={isLoadingPerformance}
-              displayInAccountCurrency
+              displayInAccountCurrency={false}
+              t={t}
             />
           ))}
         </>
@@ -475,7 +482,8 @@ export const AccountsSummary = React.memo(() => {
           key={account.accountId}
           item={account}
           isLoadingValuation={isLoadingPerformance}
-          displayInAccountCurrency
+          displayInAccountCurrency={false}
+          t={t}
         />
       ));
     }
@@ -489,19 +497,20 @@ export const AccountsSummary = React.memo(() => {
     isErrorAccounts,
     errorAccounts,
     settings?.baseCurrency,
+    t,
   ]);
 
   return (
     <div className="mb-4 w-full space-y-0">
       <div className="flex flex-row items-center justify-between gap-2 pb-2">
-        <h2 className="text-md font-semibold tracking-tight">Accounts</h2>
+        <h2 className="text-md font-semibold tracking-tight">{t("accounts.title")}</h2>
         <Button
           variant="outline"
           className="rounded-lg bg-transparent transition-colors duration-150"
           size="sm"
           onClick={() => setAccountsGrouped(!accountsGrouped)}
-          aria-label={accountsGrouped ? "List view" : "Group view"}
-          title={accountsGrouped ? "Switch to list view" : "Switch to group view"}
+          aria-label={accountsGrouped ? t("accounts.listViewAria") : t("accounts.groupViewAria")}
+          title={accountsGrouped ? t("accounts.listView") : t("accounts.groupView")}
           disabled={isLoadingAccounts || combinedAccountViews.length === 0}
         >
           {accountsGrouped ? (

@@ -1,10 +1,9 @@
-use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
-use crate::{auth::AuthManager, config::Config, events::EventBus, secrets::build_secret_store};
+use crate::config::Config;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, EnvFilter};
-use wealthfolio_core::{
+use wealthvn_core::{
     accounts::{AccountRepository, AccountService},
     activities::{
         ActivityRepository, ActivityService as CoreActivityService, ActivityServiceTrait,
@@ -26,12 +25,11 @@ use wealthfolio_core::{
         snapshot::{SnapshotRepository, SnapshotService, SnapshotServiceTrait},
         valuation::{ValuationRepository, ValuationService, ValuationServiceTrait},
     },
-    secrets::SecretStore,
     settings::{settings_repository::SettingsRepository, SettingsService, SettingsServiceTrait},
 };
 
 #[cfg(feature = "wealthfolio-pro")]
-use wealthfolio_core::sync::store;
+use wealthvn_core::sync::store;
 
 pub struct AppState {
     pub account_service: Arc<AccountService<Arc<db::DbPool>>>,
@@ -42,7 +40,7 @@ pub struct AppState {
     pub base_currency: Arc<RwLock<String>>,
     pub snapshot_service: Arc<dyn SnapshotServiceTrait + Send + Sync>,
     pub performance_service:
-        Arc<dyn wealthfolio_core::portfolio::performance::PerformanceServiceTrait + Send + Sync>,
+        Arc<dyn wealthvn_core::portfolio::performance::PerformanceServiceTrait + Send + Sync>,
     pub income_service: Arc<dyn IncomeServiceTrait + Send + Sync>,
     pub goal_service: Arc<dyn GoalServiceTrait + Send + Sync>,
     pub limits_service: Arc<dyn ContributionLimitServiceTrait + Send + Sync>,
@@ -51,27 +49,16 @@ pub struct AppState {
     pub asset_service: Arc<dyn AssetServiceTrait + Send + Sync>,
     pub addons_root: String,
     pub data_root: String,
-    pub db_path: String,
     pub instance_id: String,
-    pub secret_store: Arc<dyn SecretStore>,
-    pub event_bus: EventBus,
-    pub auth: Option<Arc<AuthManager>>,
 }
 
 pub fn init_tracing() {
-    let log_format = std::env::var("WF_LOG_FORMAT").unwrap_or_else(|_| "text".to_string());
+    let fmt_layer = fmt::layer().json().with_current_span(false);
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    let registry = tracing_subscriber::registry().with(filter);
-
-    if log_format.eq_ignore_ascii_case("json") {
-        registry
-            .with(fmt::layer().json().with_current_span(false))
-            .init();
-    } else {
-        registry
-            .with(fmt::layer().with_target(true).with_line_number(true))
-            .init();
-    }
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(fmt_layer)
+        .init();
 }
 
 pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
@@ -79,26 +66,6 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
     std::env::set_var("DATABASE_URL", &config.db_path);
     let db_path = db::init(&config.db_path)?;
     tracing::info!("Database path in use: {}", db_path);
-    let data_root_path = std::path::Path::new(&db_path)
-        .parent()
-        .unwrap_or_else(|| std::path::Path::new("."))
-        .to_path_buf();
-
-    let resolved_secret_path = std::env::var("WF_SECRET_FILE")
-        .ok()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| data_root_path.join("secrets.json"));
-    let file_store = build_secret_store(
-        resolved_secret_path.clone(),
-        Some(config.secret_key.as_str()),
-    )
-    .map_err(anyhow::Error::new)?;
-    let secret_store: Arc<dyn SecretStore> = Arc::new(file_store);
-    std::env::set_var(
-        "WF_SECRET_FILE",
-        resolved_secret_path.to_string_lossy().to_string(),
-    );
-
     let pool = db::create_pool(&db_path)?;
     db::run_migrations(&pool)?;
     let writer = write_actor::spawn_writer((*pool).clone());
@@ -133,17 +100,13 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
     let asset_repository = Arc::new(AssetRepository::new(pool.clone(), writer.clone()));
     let market_data_repository = Arc::new(MarketDataRepository::new(pool.clone(), writer.clone()));
     let market_data_service = Arc::new(
-        MarketDataService::new(
-            market_data_repository.clone(),
-            asset_repository.clone(),
-            secret_store.clone(),
-        )
-        .await?,
+        MarketDataService::with_pool(market_data_repository.clone(), asset_repository.clone(), Some(pool.clone())).await?,
     );
 
     let asset_service = Arc::new(AssetService::new(
         asset_repository.clone(),
         market_data_service.clone(),
+        market_data_repository.clone(),
     )?);
     let activity_repository = Arc::new(ActivityRepository::new(pool.clone(), writer.clone()));
     let snapshot_repository = Arc::new(SnapshotRepository::new(pool.clone(), writer.clone()));
@@ -176,7 +139,7 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
     ));
 
     let performance_service = Arc::new(
-        wealthfolio_core::portfolio::performance::PerformanceService::new(
+        wealthvn_core::portfolio::performance::PerformanceService::new(
             valuation_service.clone(),
             market_data_service.clone(),
         ),
@@ -208,19 +171,15 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
             account_service.clone(),
             asset_service.clone(),
             fx_service.clone(),
+            market_data_service.clone(),
         ));
 
     // Determine data root directory (parent of DB path)
-    let data_root = data_root_path.to_string_lossy().to_string();
-
-    let event_bus = EventBus::new(256);
-
-    let auth_manager = config
-        .auth
-        .as_ref()
-        .map(AuthManager::new)
-        .transpose()?
-        .map(Arc::new);
+    let data_root = std::path::Path::new(&db_path)
+        .parent()
+        .unwrap_or(std::path::Path::new("."))
+        .to_string_lossy()
+        .to_string();
 
     Ok(Arc::new(AppState {
         account_service,
@@ -239,10 +198,6 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
         asset_service,
         addons_root: config.addons_root.clone(),
         data_root,
-        db_path,
         instance_id: settings.instance_id,
-        secret_store,
-        event_bus,
-        auth: auth_manager,
     }))
 }

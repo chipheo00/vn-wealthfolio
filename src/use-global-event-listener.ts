@@ -19,10 +19,10 @@ const TOAST_IDS = {
 } as const;
 
 function handleMarketSyncStart() {
-  toast.loading("Syncing market data...", {
-    id: TOAST_IDS.marketSyncStart,
-    duration: 3000,
-  });
+  // toast.loading("Syncing market data...", {
+  //   id: TOAST_IDS.marketSyncStart,
+  //   duration: 3000,
+  // });
 }
 
 function handleMarketSyncComplete(event: { payload: { failed_syncs: [string, string][] } }) {
@@ -34,6 +34,10 @@ function handleMarketSyncComplete(event: { payload: { failed_syncs: [string, str
       id: `market-sync-error-${failedSymbols || "unknown"}`,
       description: `Unable to update market data for: ${failedSymbols}. This may affect your portfolio calculations and analytics. Please try again later.`,
       duration: 15000,
+      cancel: {
+        label: "Dismiss",
+        onClick: () => {},
+      },
     });
   } else {
     toast.dismiss(TOAST_IDS.marketSyncStart);

@@ -3,7 +3,7 @@
  * These utilities help convert between the main app's internal types and the SDK's public types
  */
 
-import type { HostAPI as SDKHostAPI } from "@wealthfolio/addon-sdk";
+import type { HostAPI as SDKHostAPI } from "@wealthvn/addon-sdk";
 import type { EventCallback, UnlistenFn } from "@/adapters";
 import type {
   Holding,
@@ -256,7 +256,7 @@ export function createSDKHostAPIBridge(internalAPI: InternalHostAPI, addonId?: s
       openSaveDialog: internalAPI.openFileSaveDialog,
     },
 
-    logger: createAddonLogger(addonId ?? "unknown-addon"),
+    logger: createAddonLogger(addonId || "unknown-addon"),
 
     events: {
       import: {

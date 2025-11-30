@@ -1,25 +1,19 @@
-import { logger } from "@/adapters";
-import {
-  createActivity,
-  deleteActivity,
-  saveActivities,
-  updateActivity,
-} from "@/commands/activity";
-import { updateQuote } from "@/commands/market-data";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
-import { isCashActivity } from "@/lib/activity-utils";
-import { DataSource } from "@/lib/constants";
-import { QueryKeys } from "@/lib/query-keys";
+import { createActivity, updateActivity, deleteActivity, saveActivities } from "@/commands/activity";
+import { logger } from "@/adapters";
+import { NewActivityFormValues } from "../components/forms/schemas";
 import {
+  ActivityDetails,
+  Quote,
   ActivityBulkMutationRequest,
   ActivityBulkMutationResult,
   ActivityCreate,
-  ActivityDetails,
   ActivityUpdate,
-  Quote,
 } from "@/lib/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { NewActivityFormValues } from "../components/forms/schemas";
+import { DataSource } from "@/lib/constants";
+import { updateQuote } from "@/commands/market-data";
+import { QueryKeys } from "@/lib/query-keys";
 
 export function useActivityMutations(
   onSuccess?: (activity: { accountId?: string | null }) => void,
@@ -141,30 +135,10 @@ export function useActivityMutations(
 
   const saveActivitiesMutation = useMutation({
     mutationFn: async (request: ActivityBulkMutationRequest) => {
-      const normalizeActivity = <T extends ActivityCreate | ActivityUpdate>(activity: T): T => {
-        if (!activity.assetId && isCashActivity(activity.activityType)) {
-          const currency = (activity.currency ?? "").toUpperCase().trim();
-          if (currency.length > 0) {
-            return {
-              ...activity,
-              assetId: `$CASH-${currency}`,
-            };
-          }
-        }
-        return activity;
-      };
-
-      const normalizedRequest: ActivityBulkMutationRequest = {
-        creates: (request.creates ?? []).map((activity) => normalizeActivity(activity)),
-        updates: (request.updates ?? []).map((activity) => normalizeActivity(activity)),
-        deleteIds: request.deleteIds ?? [],
-      };
-
-      const result = await saveActivities(normalizedRequest);
-
+      const result = await saveActivities(request);
       const quoteCandidates: (ActivityCreate | ActivityUpdate)[] = [
-        ...(normalizedRequest.creates ?? []),
-        ...(normalizedRequest.updates ?? []),
+        ...(request.creates ?? []),
+        ...(request.updates ?? []),
       ];
       for (const candidate of quoteCandidates) {
         await createQuoteFromActivity(candidate);

@@ -5,7 +5,6 @@ mod commands;
 mod context;
 mod events;
 mod listeners;
-mod secret_store;
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod menu;
@@ -274,7 +273,7 @@ pub fn run() {
             commands::addon::submit_addon_rating,
         ])
         .build(tauri::generate_context!())
-        .expect("error while running wealthfolio application");
+        .expect("error while running WealthVN application");
 
     app.run(|_app_handle, _event| {});
 }

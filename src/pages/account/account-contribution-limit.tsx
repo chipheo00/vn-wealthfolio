@@ -5,7 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryKeys } from "@/lib/query-keys";
 import { ContributionLimit, DepositsCalculation } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
-import { Icons, PrivacyAmount } from "@wealthfolio/ui";
+import { Icons, PrivacyAmount } from "@wealthvn/ui";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 interface AccountContributionLimitProps {
@@ -13,6 +14,7 @@ interface AccountContributionLimitProps {
 }
 
 export function AccountContributionLimit({ accountId }: AccountContributionLimitProps) {
+  const { t } = useTranslation(["accounts"]);
   const currentYear = new Date().getFullYear();
 
   const { data: allLimits, isLoading: isLimitsLoading } = useQuery<ContributionLimit[], Error>({
@@ -41,7 +43,7 @@ export function AccountContributionLimit({ accountId }: AccountContributionLimit
       <Card className="border-muted bg-muted/70 border-none p-6 shadow-none">
         <div className="flex items-center justify-between text-sm">
           <span>
-            You&apos;ve contributed{" "}
+            {t("contributionLimit.contributedSoFar")}{" "}
             <span className="font-semibold">
               <PrivacyAmount
                 value={accountDeposit?.convertedAmount ?? 0}
@@ -70,6 +72,7 @@ export function AccountContributionLimit({ accountId }: AccountContributionLimit
         deposit={accountDeposit}
         totalDeposits={deposits?.total ?? 0}
         baseCurrency={deposits?.baseCurrency ?? "USD"}
+        t={t}
       />
     </div>
   );
@@ -80,11 +83,13 @@ function AccountContributionLimitItem({
   deposit,
   totalDeposits,
   baseCurrency,
+  t,
 }: {
   limit: ContributionLimit;
   deposit?: { amount: number; currency: string; convertedAmount: number };
   totalDeposits: number;
   baseCurrency: string;
+  t: any;
 }) {
   const progressValue = totalDeposits ? totalDeposits : 0;
   const progressPercentageNumber =
@@ -103,31 +108,33 @@ function AccountContributionLimitItem({
           <div className="text-sm">
             {isOverLimit ? (
               <span>
-                You&apos;ve contributed{" "}
+                {t("contributionLimit.youHaveContributed")}{" "}
                 <span className="font-semibold">
                   <PrivacyAmount value={deposit?.convertedAmount ?? 0} currency={baseCurrency} />
                 </span>{" "}
-                to this account in {limit.contributionYear}. Your total is{" "}
+                {t("contributionLimit.toThisAccountIn")} {limit.contributionYear}.{" "}
+                {t("contributionLimit.yourTotalIs")}{" "}
                 <span className="text-destructive font-semibold">
                   <PrivacyAmount value={totalDeposits} currency={baseCurrency} />
                 </span>{" "}
-                which is over the{" "}
+                {t("contributionLimit.whichIsOverThe")}{" "}
                 <span className="font-semibold">
                   <PrivacyAmount value={limit.limitAmount} currency={baseCurrency} />
                 </span>{" "}
-                limit.
+                {t("contributionLimit.limit")}
               </span>
             ) : (
               <span>
-                You&apos;ve contributed{" "}
+                {t("contributionLimit.youHaveContributed")}{" "}
                 <span className="font-semibold">
                   <PrivacyAmount value={deposit?.convertedAmount ?? 0} currency={baseCurrency} />
                 </span>{" "}
-                to this account in {limit.contributionYear}. Your total contribution towards the{" "}
+                {t("contributionLimit.toThisAccountIn")} {limit.contributionYear}.{" "}
+                {t("contributionLimit.yourTotalContribution")}{" "}
                 <span className="font-semibold">
                   <PrivacyAmount value={limit.limitAmount} currency={baseCurrency} />
                 </span>{" "}
-                {limit.groupName} limit is{" "}
+                {limit.groupName} {t("contributionLimit.limitIs")}{" "}
                 <span className="font-semibold">
                   <PrivacyAmount value={totalDeposits} currency={baseCurrency} />
                 </span>

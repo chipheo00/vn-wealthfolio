@@ -1,13 +1,15 @@
 import { getHoldings } from "@/commands/portfolio";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useDividendAdjustedHoldings } from "@/hooks/use-dividend-adjusted-holdings";
 import { useIsMobileViewport } from "@/hooks/use-platform";
 import { QueryKeys } from "@/lib/query-keys";
 import { Account, Holding, HoldingType } from "@/lib/types";
 import { HoldingsTable } from "@/pages/holdings/components/holdings-table";
 import { HoldingsTableMobile } from "@/pages/holdings/components/holdings-table-mobile";
-import { Button, EmptyPlaceholder, Icons } from "@wealthfolio/ui";
 import { useQuery } from "@tanstack/react-query";
+import { Button, EmptyPlaceholder, Icons } from "@wealthvn/ui";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 interface AccountHoldingsProps {
@@ -16,6 +18,7 @@ interface AccountHoldingsProps {
 }
 
 const AccountHoldings = ({ accountId, showEmptyState = true }: AccountHoldingsProps) => {
+  const { t } = useTranslation(["accounts"]);
   const isMobile = useIsMobileViewport();
   const navigate = useNavigate();
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -24,6 +27,8 @@ const AccountHoldings = ({ accountId, showEmptyState = true }: AccountHoldingsPr
     queryKey: [QueryKeys.HOLDINGS, accountId],
     queryFn: () => getHoldings(accountId),
   });
+
+  const { adjustedHoldings } = useDividendAdjustedHoldings(holdings ?? undefined);
 
   const { accounts } = useAccounts();
 
@@ -35,7 +40,11 @@ const AccountHoldings = ({ accountId, showEmptyState = true }: AccountHoldingsPr
     return selectedAccount ? [selectedAccount] : [];
   }, [selectedAccount]);
 
-  const filteredHoldings = holdings?.filter((holding) => holding.holdingType !== HoldingType.CASH);
+  if (!isLoading && !adjustedHoldings?.length) {
+    return null;
+  }
+
+  const filteredHoldings = adjustedHoldings?.filter((holding) => holding.holdingType !== HoldingType.CASH);
 
   // Show loading state while data is being fetched
   if (isLoading) {
@@ -87,7 +96,7 @@ const AccountHoldings = ({ accountId, showEmptyState = true }: AccountHoldingsPr
 
   return (
     <div>
-      <h3 className="py-4 text-lg font-bold">Holdings</h3>
+      <h3 className="py-4 text-lg font-bold">{t("holdings.title")}</h3>
       {isMobile ? (
         <HoldingsTableMobile
           holdings={filteredHoldings ?? []}

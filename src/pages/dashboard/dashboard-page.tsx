@@ -2,15 +2,18 @@ import { HistoryChart } from "@/components/history-chart";
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHoldings } from "@/hooks/use-holdings";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import { useValuationHistory } from "@/hooks/use-valuation-history";
 import { PORTFOLIO_ACCOUNT_ID } from "@/lib/constants";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { DateRange, TimePeriod } from "@/lib/types";
 import { calculatePerformanceMetrics } from "@/lib/utils";
 import { PortfolioUpdateTrigger } from "@/pages/dashboard/portfolio-update-trigger";
-import { GainAmount, GainPercent, IntervalSelector, Page } from "@wealthfolio/ui";
+import { GainAmount, GainPercent, IntervalSelector, Page } from "@wealthvn/ui";
 import { subMonths } from "date-fns";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 import { AccountsSummary } from "./accounts-summary";
 import Balance from "./balance";
 import SavingGoals from "./goals";
@@ -39,10 +42,53 @@ const getInitialDateRange = (): DateRange => ({
 const INITIAL_INTERVAL_CODE: TimePeriod = "3M";
 
 export default function DashboardPage() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(getInitialDateRange());
-  const [selectedIntervalDescription, setSelectedIntervalDescription] =
-    useState<string>("Last 3 months");
+  const { t: tCommon } = useTranslation("common");
+  const [intervalCode, setIntervalCode] = usePersistentState<TimePeriod>(
+    "dashboard:intervalCode",
+    INITIAL_INTERVAL_CODE,
+  );
+  const [dateRange, setDateRange] = usePersistentState<DateRange | undefined>(
+    "dashboard:dateRange",
+    getInitialDateRange(),
+  );
+  const [selectedIntervalDescription, setSelectedIntervalDescription] = usePersistentState<string>(
+    "dashboard:selectedIntervalDescription",
+    tCommon("intervals.3M"),
+  );
   const [isAllTime, setIsAllTime] = useState<boolean>(false);
+
+  // Get description for current interval
+  const getIntervalDescription = (code: TimePeriod) => {
+    switch (code) {
+      case "1D":
+        return tCommon("intervals.1D");
+      case "1W":
+        return tCommon("intervals.1W");
+      case "1M":
+        return tCommon("intervals.1M");
+      case "3M":
+        return tCommon("intervals.3M");
+      case "6M":
+        return tCommon("intervals.6M");
+      case "YTD":
+        return tCommon("intervals.YTD");
+      case "1Y":
+        return tCommon("intervals.1Y");
+      case "3Y":
+        return tCommon("intervals.3Y");
+      case "5Y":
+        return tCommon("intervals.5Y");
+      case "ALL":
+        return tCommon("intervals.ALL");
+      default:
+        return tCommon("intervals.3M");
+    }
+  };
+
+  // Update interval description when interval or language changes
+  useEffect(() => {
+    setSelectedIntervalDescription(getIntervalDescription(intervalCode));
+  }, [intervalCode, tCommon]);
 
   const { holdings, isLoading: isHoldingsLoading } = useHoldings(PORTFOLIO_ACCOUNT_ID);
 
@@ -87,6 +133,7 @@ export default function DashboardPage() {
     description: string,
     range: DateRange | undefined,
   ) => {
+    setIntervalCode(code);
     setSelectedIntervalDescription(description);
     setDateRange(range);
     setIsAllTime(code === "ALL");
@@ -141,7 +188,7 @@ export default function DashboardPage() {
                   className="pointer-events-auto relative z-20 w-full max-w-screen-sm sm:max-w-screen-md md:max-w-2xl lg:max-w-3xl"
                   onIntervalSelect={handleIntervalSelect}
                   isLoading={isValuationHistoryLoading}
-                  initialSelection={INITIAL_INTERVAL_CODE}
+                  initialSelection={intervalCode}
                 />
               </div>
             </>

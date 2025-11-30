@@ -1,8 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import * as z from "zod";
 
+import { useMarketDataProviderSettings } from "@/pages/settings/market-data/use-market-data-settings";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,9 +18,9 @@ import { Icons } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { InputTags } from "@/components/ui/tag-input";
 import { Textarea } from "@/components/ui/textarea";
-import { DataSource } from "@/lib/constants";
+import { DataSource, dataSourceSchema } from "@/lib/constants";
 import { UpdateAssetProfile } from "@/lib/types";
-import { ResponsiveSelect, type ResponsiveSelectOption } from "@wealthfolio/ui";
+import { ResponsiveSelect, type ResponsiveSelectOption } from "@wealthvn/ui";
 
 import { ParsedAsset, formatBreakdownTags, tagsToBreakdown } from "./asset-utils";
 
@@ -28,7 +30,7 @@ const assetFormSchema = z.object({
   assetClass: z.string().optional(),
   assetSubClass: z.string().optional(),
   currency: z.string().min(1),
-  dataSource: z.enum([DataSource.YAHOO, DataSource.MANUAL]),
+  dataSource: dataSourceSchema,
   notes: z.string().optional(),
   sectors: z.array(z.string()),
   countries: z.array(z.string()),
@@ -36,19 +38,83 @@ const assetFormSchema = z.object({
 
 export type AssetFormValues = z.infer<typeof assetFormSchema>;
 
-const dataSourceOptions: ResponsiveSelectOption[] = [
-  { label: "Yahoo Finance", value: DataSource.YAHOO },
-  { label: "Manual", value: DataSource.MANUAL },
-];
+// Helper function to get display label for data source
+const getDataSourceLabel = (dataSource: string, t: any): string => {
+  switch (dataSource) {
+    case DataSource.YAHOO:
+      return t("securities.form.dataSource.options.yahoo");
+    case DataSource.MANUAL:
+      return t("securities.form.dataSource.options.manual");
+    case DataSource.MARKET_DATA_APP:
+      return t("securities.form.dataSource.options.marketDataApp");
+    case DataSource.ALPHA_VANTAGE:
+      return t("securities.form.dataSource.options.alphaVantage");
+    case DataSource.METAL_PRICE_API:
+      return t("securities.form.dataSource.options.metalPriceApi");
+    case DataSource.VN_MARKET:
+      return t("securities.form.dataSource.options.vnMarket");
+    default:
+      return dataSource;
+  }
+};
 
 interface AssetFormProps {
   asset: ParsedAsset;
   onSubmit: (values: AssetFormValues) => Promise<void>;
   onCancel?: () => void;
   isSaving?: boolean;
+  onDataSourceChange?: (newSource: string, currentSource: string) => Promise<boolean>;
 }
 
-export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProps) {
+export function AssetForm({
+  asset,
+  onSubmit,
+  onCancel,
+  isSaving,
+  onDataSourceChange,
+}: AssetFormProps) {
+  const { t } = useTranslation("settings");
+  const { data: providerSettings = [] } = useMarketDataProviderSettings();
+
+  // Generate data source options based on enabled providers and original source
+  const dataSourceOptions = useMemo(() => {
+    const originalDataSource = (asset.dataSource as DataSource) ?? DataSource.YAHOO;
+    const enabledProviderIds = providerSettings
+      .filter((provider) => provider.enabled)
+      .map((provider) => provider.id);
+
+    const options: ResponsiveSelectOption[] = [];
+
+    // Always include the original data source even if disabled (so user can see current setting)
+    options.push({ label: getDataSourceLabel(originalDataSource, t), value: originalDataSource });
+
+    // Add Manual option if it's not already the original source
+    if (originalDataSource !== DataSource.MANUAL) {
+      options.push({ label: getDataSourceLabel(DataSource.MANUAL, t), value: DataSource.MANUAL });
+    }
+
+    // Add enabled providers that aren't already in the list
+    const allAutoProviders = [
+      DataSource.YAHOO,
+      DataSource.MARKET_DATA_APP,
+      DataSource.ALPHA_VANTAGE,
+      DataSource.METAL_PRICE_API,
+      DataSource.VN_MARKET,
+    ];
+
+    allAutoProviders.forEach((provider) => {
+      if (
+        enabledProviderIds.includes(provider) &&
+        provider !== originalDataSource &&
+        !options.some((opt) => opt.value === provider)
+      ) {
+        options.push({ label: getDataSourceLabel(provider, t), value: provider });
+      }
+    });
+
+    return options;
+  }, [asset.dataSource, t, providerSettings]);
+
   const defaultValues: AssetFormValues = {
     symbol: asset.id,
     name: asset.name ?? "",
@@ -70,6 +136,20 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
     form.reset(defaultValues);
   }, [asset, form]);
 
+  const handleDataSourceChange = async (value: string) => {
+    const currentDataSource = form.getValues("dataSource");
+
+    // If there's a callback and the data source is changing, call it for confirmation
+    if (onDataSourceChange && value !== currentDataSource) {
+      const shouldChange = await onDataSourceChange(value, currentDataSource);
+      if (shouldChange) {
+        form.setValue("dataSource", value as DataSource);
+      }
+    } else {
+      form.setValue("dataSource", value as DataSource);
+    }
+  };
+
   const handleSubmit = async (values: AssetFormValues) => {
     await onSubmit(values);
   };
@@ -83,7 +163,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="symbol"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Symbol</FormLabel>
+                <FormLabel>{t("securities.form.symbol.label")}</FormLabel>
                 <FormControl>
                   <Input {...field} disabled className="bg-muted/50" />
                 </FormControl>
@@ -96,7 +176,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="currency"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Currency</FormLabel>
+                <FormLabel>{t("securities.form.currency.label")}</FormLabel>
                 <FormControl>
                   <Input {...field} disabled className="bg-muted/50 uppercase" />
                 </FormControl>
@@ -109,9 +189,9 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="name"
             render={({ field }) => (
               <FormItem className="md:col-span-2">
-                <FormLabel>Name</FormLabel>
+                <FormLabel>{t("securities.form.name.label")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Asset display name" {...field} />
+                  <Input placeholder={t("securities.form.name.placeholder")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -122,9 +202,9 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="assetClass"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Class</FormLabel>
+                <FormLabel>{t("securities.form.class.label")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Equity, Bond, Cash..." {...field} />
+                  <Input placeholder={t("securities.form.class.placeholder")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -135,9 +215,9 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="assetSubClass"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sub-class</FormLabel>
+                <FormLabel>{t("securities.form.subClass.label")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="ETF, Stock, Fund..." {...field} />
+                  <Input placeholder={t("securities.form.subClass.placeholder")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -148,15 +228,15 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="dataSource"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Data source</FormLabel>
+                <FormLabel>{t("securities.form.dataSource.label")}</FormLabel>
                 <FormControl>
                   <ResponsiveSelect
                     value={field.value}
-                    onValueChange={field.onChange}
+                    onValueChange={handleDataSourceChange}
                     options={dataSourceOptions}
-                    placeholder="Select a provider"
-                    sheetTitle="Pick a data source"
-                    sheetDescription="Choose how prices are loaded for this asset."
+                    placeholder={t("securities.form.dataSource.placeholder")}
+                    sheetTitle={t("securities.form.dataSource.sheetTitle")}
+                    sheetDescription={t("securities.form.dataSource.sheetDescription")}
                   />
                 </FormControl>
                 <FormMessage />
@@ -171,12 +251,12 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="sectors"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sectors (use sector:weight)</FormLabel>
+                <FormLabel>{t("securities.form.sectors.label")}</FormLabel>
                 <FormControl>
                   <InputTags
                     value={field.value}
                     onChange={(values) => field.onChange(values)}
-                    placeholder="Technology:40%, Healthcare:20%"
+                    placeholder={t("securities.form.sectors.placeholder")}
                   />
                 </FormControl>
                 <FormMessage />
@@ -188,12 +268,12 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="countries"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Countries (use country:weight)</FormLabel>
+                <FormLabel>{t("securities.form.countries.label")}</FormLabel>
                 <FormControl>
                   <InputTags
                     value={field.value}
                     onChange={(values) => field.onChange(values)}
-                    placeholder="United States:50%, Canada:25%"
+                    placeholder={t("securities.form.countries.placeholder")}
                   />
                 </FormControl>
                 <FormMessage />
@@ -205,9 +285,13 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
             name="notes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Notes</FormLabel>
+                <FormLabel>{t("securities.form.notes.label")}</FormLabel>
                 <FormControl>
-                  <Textarea rows={5} placeholder="Add any context or links" {...field} />
+                  <Textarea
+                    rows={5}
+                    placeholder={t("securities.form.notes.placeholder")}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -218,16 +302,17 @@ export function AssetForm({ asset, onSubmit, onCancel, isSaving }: AssetFormProp
         <div className="flex justify-end gap-3">
           {onCancel ? (
             <Button type="button" variant="ghost" onClick={onCancel} disabled={isSaving}>
-              Cancel
+              {t("securities.form.buttons.cancel")}
             </Button>
           ) : null}
           <Button type="submit" disabled={isSaving || form.formState.isSubmitting}>
             {isSaving || form.formState.isSubmitting ? (
               <span className="flex items-center gap-2">
-                <Icons.Spinner className="h-4 w-4 animate-spin" /> Saving
+                <Icons.Spinner className="h-4 w-4 animate-spin" />{" "}
+                {t("securities.form.buttons.saving")}
               </span>
             ) : (
-              "Save changes"
+              t("securities.form.buttons.save")
             )}
           </Button>
         </div>

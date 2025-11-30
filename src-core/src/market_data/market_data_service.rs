@@ -1,5 +1,7 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, TimeZone, Utc};
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::SqliteConnection;
 use log::{debug, error};
 use rust_decimal::Decimal;
 use std::collections::btree_map::Entry as BTreeEntry;
@@ -8,18 +10,18 @@ use std::sync::Arc;
 use std::time::SystemTime;
 use tokio::sync::RwLock;
 
+type DbPool = Pool<ConnectionManager<SqliteConnection>>;
+
 use super::market_data_constants::*;
 use super::market_data_model::{
     ImportValidationStatus, LatestQuotePair, MarketDataProviderInfo, MarketDataProviderSetting,
-    Quote, QuoteImport, QuoteRequest, QuoteSummary, UpdateMarketDataProviderSetting,
+    Quote, QuoteImport, QuoteRequest, QuoteSummary, UpdateMarketDataProviderSetting, DataSource,
 };
 use super::market_data_traits::{MarketDataRepositoryTrait, MarketDataServiceTrait};
 use super::providers::models::AssetProfile;
-use crate::assets::assets_constants::CASH_ASSET_TYPE;
 use crate::assets::assets_traits::AssetRepositoryTrait;
 use crate::errors::Result;
 use crate::market_data::providers::ProviderRegistry;
-use crate::secrets::SecretStore;
 use crate::utils::time_utils;
 
 const QUOTE_LOOKBACK_DAYS: i64 = 7;
@@ -35,18 +37,83 @@ pub struct MarketDataService {
     provider_registry: Arc<RwLock<ProviderRegistry>>,
     repository: Arc<dyn MarketDataRepositoryTrait + Send + Sync>,
     asset_repository: Arc<dyn AssetRepositoryTrait + Send + Sync>,
-    secret_store: Arc<dyn SecretStore>,
+    pool: Option<Arc<DbPool>>,
 }
 
 #[async_trait]
 impl MarketDataServiceTrait for MarketDataService {
     async fn search_symbol(&self, query: &str) -> Result<Vec<QuoteSummary>> {
-        self.provider_registry
+        // 1. Search for existing manual assets in the database
+        let all_assets = self.asset_repository.list()?;
+        let query_upper = query.to_uppercase();
+
+        let manual_assets: Vec<QuoteSummary> = all_assets
+            .iter()
+            .filter(|asset| {
+                // Only show manual assets
+                asset.data_source == "MANUAL" &&
+                // Match by symbol (exact or starts with)
+                (asset.symbol.to_uppercase() == query_upper ||
+                 asset.symbol.to_uppercase().starts_with(&query_upper) ||
+                // Also match by name if available
+                 asset.name.as_ref().map_or(false, |n| n.to_uppercase().contains(&query_upper)))
+            })
+            .map(|asset| QuoteSummary {
+                symbol: asset.symbol.clone(),
+                short_name: asset.name.clone().unwrap_or_else(|| asset.symbol.clone()),
+                long_name: asset.name.clone().unwrap_or_else(|| asset.symbol.clone()),
+                quote_type: asset.asset_type.clone().unwrap_or_else(|| "EQUITY".to_string()),
+                index: "".to_string(),
+                score: 100.0, // Manual assets get highest priority
+                type_display: "Manual".to_string(),
+                exchange: "MANUAL".to_string(),
+            })
+            .collect();
+
+        // 2. Search all external providers in parallel
+        let provider_results_with_ids = self.provider_registry
             .read()
             .await
-            .search_ticker(query)
-            .await
-            .map_err(|e| e.into())
+            .search_ticker_parallel(query)
+            .await?;
+
+        // 3. Sort provider results by priority
+        let registry = self.provider_registry.read().await;
+        let provider_priority_map: HashMap<String, usize> = registry
+            .get_ordered_profiler_ids()
+            .iter()
+            .enumerate()
+            .map(|(idx, id)| (id.clone(), idx))
+            .collect();
+        drop(registry); // Release lock
+
+        let mut sorted_provider_results: Vec<(usize, i32, QuoteSummary)> = provider_results_with_ids
+            .into_iter()
+            .map(|(provider_id, summary)| {
+                let priority = provider_priority_map.get(&provider_id).copied().unwrap_or(999);
+                let score = -(summary.score as i32); // Negative for descending order
+                (priority, score, summary)
+            })
+            .collect();
+
+        // Sort by: 1) provider priority (ascending), 2) score (descending via negative)
+        sorted_provider_results.sort_by_key(|(priority, score, _)| (*priority, *score));
+
+        let provider_results: Vec<QuoteSummary> = sorted_provider_results
+            .into_iter()
+            .map(|(_, _, summary)| summary)
+            .collect();
+
+        // 4. Combine: manual assets first, then provider results
+        let mut all_results = manual_assets;
+        all_results.extend(provider_results);
+
+        // 5. Deduplicate by symbol (keep first occurrence = highest priority)
+        let mut seen_symbols = HashSet::new();
+        all_results.retain(|item| seen_symbols.insert(item.symbol.clone()));
+
+        debug!("Search completed: {} unique results for query '{}'", all_results.len(), query);
+        Ok(all_results)
     }
 
     fn get_latest_quote_for_symbol(&self, symbol: &str) -> Result<Quote> {
@@ -137,17 +204,18 @@ impl MarketDataServiceTrait for MarketDataService {
 
     async fn sync_market_data(&self) -> Result<((), Vec<(String, String)>)> {
         debug!("Syncing market data.");
+
         let assets = self.asset_repository.list()?;
-        let quote_requests: Vec<_> = assets
-            .iter()
+        let quote_requests: Vec<QuoteRequest> = assets
+            .into_iter()
             .filter(|asset| {
-                asset.asset_type.as_deref() != Some(CASH_ASSET_TYPE)
-                    && asset.data_source != DATA_SOURCE_MANUAL
+                asset.asset_type.as_deref() != Some("CASH")
+                    && asset.data_source != "MANUAL"
             })
             .map(|asset| QuoteRequest {
-                symbol: asset.symbol.clone(),
-                data_source: asset.data_source.as_str().into(),
-                currency: asset.currency.clone(),
+                symbol: asset.symbol,
+                data_source: DataSource::from(asset.data_source.as_str()),
+                currency: asset.currency,
             })
             .collect();
 
@@ -159,24 +227,19 @@ impl MarketDataServiceTrait for MarketDataService {
         symbols: Option<Vec<String>>,
     ) -> Result<((), Vec<(String, String)>)> {
         debug!("Resyncing market data. Symbols: {:?}", symbols);
-        let assets = match symbols {
-            Some(syms) if !syms.is_empty() => self.asset_repository.list_by_symbols(&syms)?,
-            _ => {
-                debug!("No symbols provided or empty list. Fetching all assets.");
-                self.asset_repository.list()?
-            }
+
+        let assets = if let Some(syms) = symbols {
+            self.asset_repository.list_by_symbols(&syms)?
+        } else {
+            self.asset_repository.list()?
         };
 
-        let quote_requests: Vec<_> = assets
-            .iter()
-            .filter(|asset| {
-                asset.asset_type.as_deref() != Some(CASH_ASSET_TYPE)
-                    && asset.data_source != DATA_SOURCE_MANUAL
-            })
+        let quote_requests: Vec<QuoteRequest> = assets
+            .into_iter()
             .map(|asset| QuoteRequest {
-                symbol: asset.symbol.clone(),
-                data_source: asset.data_source.as_str().into(),
-                currency: asset.currency.clone(),
+                symbol: asset.symbol,
+                data_source: DataSource::from(asset.data_source.as_str()),
+                currency: asset.currency,
             })
             .collect();
 
@@ -253,22 +316,22 @@ impl MarketDataServiceTrait for MarketDataService {
     async fn get_market_data_providers_info(&self) -> Result<Vec<MarketDataProviderInfo>> {
         debug!("Fetching market data providers info");
         let latest_sync_dates_by_source = self.repository.get_latest_sync_dates_by_source()?;
+        let provider_settings = self.repository.get_all_providers()?;
 
         let mut providers_info = Vec::new();
-        let known_providers = vec![(DATA_SOURCE_YAHOO, "Yahoo Finance", "yahoo-finance.png")];
+        let _known_providers = vec![(DATA_SOURCE_YAHOO, "Yahoo Finance", "yahoo-finance.png")];
 
-        for (id, name, logo_filename) in known_providers {
-            let last_synced_naive: Option<NaiveDateTime> = latest_sync_dates_by_source
-                .get(id)
-                .and_then(|opt_dt| *opt_dt);
+        for setting in provider_settings {
+            let last_synced_naive: Option<NaiveDateTime> =
+            latest_sync_dates_by_source.get(&setting.id).and_then(|opt_dt| *opt_dt);
 
             let last_synced_utc: Option<DateTime<Utc>> =
                 last_synced_naive.map(|naive_dt| Utc.from_utc_datetime(&naive_dt));
 
             providers_info.push(MarketDataProviderInfo {
-                id: id.to_string(),
-                name: name.to_string(),
-                logo_filename: logo_filename.to_string(),
+                id: setting.id.clone(),
+                name: setting.name.clone(),
+                logo_filename: setting.logo_filename.clone().unwrap_or_default(),
                 last_synced_date: last_synced_utc,
             });
         }
@@ -312,7 +375,7 @@ impl MarketDataServiceTrait for MarketDataService {
         &self,
         quotes: Vec<QuoteImport>,
         overwrite: bool,
-    ) -> Result<Vec<QuoteImport>> {
+        ) -> Result<Vec<QuoteImport>> {
         debug!("🚀 SERVICE: import_quotes_from_csv called");
         debug!(
             "📊 Processing {} quotes, overwrite: {}",
@@ -326,12 +389,12 @@ impl MarketDataServiceTrait for MarketDataService {
         debug!("🔍 Starting quote validation and duplicate checking...");
         for (index, mut quote) in quotes.into_iter().enumerate() {
             debug!(
-                "📋 Processing quote {}/{}: symbol={}, date={}",
+            "📋 Processing quote {}/{}: symbol={}, date={}",
                 index + 1,
-                results.len() + quotes_to_import.len() + 1,
-                quote.symbol,
-                quote.date
-            );
+            results.len() + quotes_to_import.len() + 1,
+        quote.symbol,
+        quote.date
+        );
 
             // Check if quote already exists
             let exists = self.repository.quote_exists(&quote.symbol, &quote.date)?;
@@ -391,16 +454,16 @@ impl MarketDataServiceTrait for MarketDataService {
 
         if !quotes_for_db.is_empty() {
             debug!(
-                "💾 Calling repository.bulk_upsert_quotes with {} quotes",
-                quotes_for_db.len()
-            );
+            "💾 Calling repository.bulk_upsert_quotes with {} quotes",
+            quotes_for_db.len()
+        );
             debug!(
-                "🎯 Sample quote for DB: id={}, symbol={}, timestamp={}, data_source={:?}",
-                quotes_for_db[0].id,
-                quotes_for_db[0].symbol,
-                quotes_for_db[0].timestamp,
-                quotes_for_db[0].data_source
-            );
+            "🎯 Sample quote for DB: id={}, symbol={}, timestamp={}, data_source={:?}",
+        quotes_for_db[0].id,
+        quotes_for_db[0].symbol,
+            quotes_for_db[0].timestamp,
+            quotes_for_db[0].data_source
+        );
 
             match self.repository.bulk_upsert_quotes(quotes_for_db).await {
                 Ok(count) => {
@@ -425,18 +488,29 @@ impl MarketDataServiceTrait for MarketDataService {
     async fn bulk_upsert_quotes(&self, quotes: Vec<Quote>) -> Result<usize> {
         self.repository.bulk_upsert_quotes(quotes).await
     }
+
+
 }
 
 impl MarketDataService {
+    /// Create a new market data service without DB pool (VN gold cache disabled)
     pub async fn new(
         repository: Arc<dyn MarketDataRepositoryTrait + Send + Sync>,
         asset_repository: Arc<dyn AssetRepositoryTrait + Send + Sync>,
-        secret_store: Arc<dyn SecretStore>,
+    ) -> Result<Self> {
+        Self::with_pool(repository, asset_repository, None).await
+    }
+
+    /// Create a new market data service with optional DB pool for VN gold cache
+    pub async fn with_pool(
+        repository: Arc<dyn MarketDataRepositoryTrait + Send + Sync>,
+        asset_repository: Arc<dyn AssetRepositoryTrait + Send + Sync>,
+        pool: Option<Arc<DbPool>>,
     ) -> Result<Self> {
         let provider_settings = repository.get_all_providers()?;
         // Be resilient on platforms where certain providers cannot initialize (e.g., mobile TLS differences).
         // Fall back to an empty registry (Manual provider only) instead of aborting app initialization.
-        let registry = match ProviderRegistry::new(provider_settings, secret_store.clone()).await {
+        let registry = match ProviderRegistry::with_pool(provider_settings, pool.clone()).await {
             Ok(reg) => reg,
             Err(e) => {
                 log::warn!(
@@ -444,7 +518,7 @@ impl MarketDataService {
                     e
                 );
                 // Safe fallback: no external providers enabled
-                ProviderRegistry::new(Vec::new(), secret_store.clone()).await?
+                ProviderRegistry::new(Vec::new()).await?
             }
         };
         let provider_registry = Arc::new(RwLock::new(registry));
@@ -453,16 +527,19 @@ impl MarketDataService {
             provider_registry,
             repository,
             asset_repository,
-            secret_store,
+            pool,
         })
     }
+
+
+
+
 
     /// Refreshes the provider registry with the latest settings from the database
     async fn refresh_provider_registry(&self) -> Result<()> {
         debug!("Refreshing provider registry with latest settings");
         let provider_settings = self.repository.get_all_providers()?;
-        let new_registry =
-            ProviderRegistry::new(provider_settings, self.secret_store.clone()).await?;
+        let new_registry = ProviderRegistry::with_pool(provider_settings, self.pool.clone()).await?;
 
         // Replace the registry with the new one
         *self.provider_registry.write().await = new_registry;
@@ -550,23 +627,29 @@ impl MarketDataService {
             return Ok(((), Vec::new()));
         }
 
-        let current_utc_naive_date = Utc::now().date_naive();
-        let end_date_naive_utc = current_utc_naive_date
-            .and_hms_opt(23, 59, 59)
-            .expect("valid end-of-day time");
-        let end_date: SystemTime = Utc.from_utc_datetime(&end_date_naive_utc).into();
+        let current_local_naive_date = Local::now().date_naive();
+        let end_date_naive_local = current_local_naive_date.and_hms_opt(23, 59, 59).unwrap();
+        let end_date: SystemTime = Utc
+            .from_utc_datetime(
+                &end_date_naive_local
+                    .and_local_timezone(Local)
+                    .unwrap()
+                    .naive_utc(),
+            )
+            .into();
 
         let public_requests = quote_requests;
         let mut all_quotes = Vec::new();
         let mut failed_syncs = Vec::new();
-        let symbols_with_currencies: Vec<(String, String)> = public_requests
-            .iter()
-            .map(|req| (req.symbol.clone(), req.currency.clone()))
-            .collect();
 
-        let sync_plan =
-            self.calculate_sync_plan(refetch_all, &symbols_with_currencies, end_date)?;
+        if !public_requests.is_empty() {
+            let symbols_with_currencies: Vec<(String, String)> = public_requests
+                .iter()
+                .map(|req| (req.symbol.clone(), req.currency.clone()))
+                .collect();
 
+            let sync_plan =
+                self.calculate_sync_plan(refetch_all, &symbols_with_currencies, end_date)?;
         if sync_plan.is_empty() {
             debug!("All tracked symbols are already up to date; nothing to fetch from providers.");
         } else {
@@ -611,11 +694,29 @@ impl MarketDataService {
                     .map(|(symbol, _)| symbol.clone())
                     .collect();
 
+                let quote_requests: Vec<QuoteRequest> = group_symbols
+                    .into_iter()
+                    .map(|(symbol, currency)| {
+                        // Find the original quote request for this symbol to get its data source
+                        let data_source = public_requests
+                            .iter()
+                            .find(|req| req.symbol == symbol)
+                            .map(|req| req.data_source.clone())
+                            .unwrap_or(DataSource::Yahoo); // Fallback to Yahoo if not found
+
+                        QuoteRequest {
+                            symbol,
+                            currency,
+                            data_source,
+                        }
+                    })
+                    .collect();
+
                 match self
                     .provider_registry
                     .read()
                     .await
-                    .historical_quotes_bulk(&group_symbols, start_time, end_date)
+                    .historical_quotes_bulk(&quote_requests, start_time, end_date)
                     .await
                 {
                     Ok((quotes, provider_failures)) => {
@@ -662,6 +763,7 @@ impl MarketDataService {
             } else {
                 debug!("Successfully saved {} filled quotes.", all_quotes.len());
             }
+        }
         }
 
         Ok(((), failed_syncs))
@@ -722,13 +824,14 @@ impl MarketDataService {
             let start_date = match quotes_map.get(symbol) {
                 Some(latest_quote) => {
                     let last_date = latest_quote.timestamp.date_naive();
-
                     if last_date >= end_date {
-                        // Re-fetch the latest day to pick up intraday adjustments Yahoo publishes.
-                        end_date
-                    } else {
-                        last_date.succ_opt().unwrap_or(last_date)
+                        debug!(
+                            "Symbol '{}' already has data through {} (end {}). Skipping fetch.",
+                            symbol, last_date, end_date
+                        );
+                        continue;
                     }
+                    last_date.succ_opt().unwrap_or(last_date)
                 }
                 None => default_start_date,
             };

@@ -1,0 +1,130 @@
+{
+  "appName": "WealthVN",
+  "actions": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "add": "Thêm",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "export": "Xuất",
+    "import": "Nhập",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "finish": "Hoàn thành",
+    "close": "Đóng",
+    "confirm": "Xác nhận",
+    "loading": "Đang tải...",
+    "refresh": "Làm mới",
+    "reset": "Đặt lại",
+    "clear": "Xóa",
+    "apply": "Áp dụng",
+    "view": "Xem"
+  },
+  "navigation": {
+    "dashboard": "Tổng quan",
+    "holdings": "Danh mục",
+    "performance": "Hiệu suất",
+    "income": "Thu nhập",
+    "activities": "Hoạt động",
+    "trading": "Giao dịch",
+    "activity": "Hoạt động",
+    "accounts": "Tài khoản",
+    "settings": "Cài đặt",
+    "goals": "Mục tiêu",
+    "assets": "Tài sản"
+  },
+  "common": {
+    "name": "Tên",
+    "type": "Loại",
+    "date": "Ngày",
+    "amount": "Số tiền",
+    "price": "Giá",
+    "quantity": "Số lượng",
+    "total": "Tổng",
+    "balance": "Số dư",
+    "status": "Trạng thái",
+    "description": "Mô tả",
+    "currency": "Tiền tệ",
+    "symbol": "Mã",
+    "value": "Giá trị",
+    "change": "Thay đổi",
+    "percent": "Phần trăm",
+    "yes": "Có",
+    "no": "Không",
+    "moreInfoAbout": "Thêm thông tin về {{label}}",
+    "annualized": "Hàng năm:",
+    "other": "Khác",
+    "na": "N/A",
+    "accountCount_one": "{{count}} tài khoản",
+    "accountCount_other": "{{count}} tài khoản"
+  },
+  "accounts": {
+    "allPortfolio": "Toàn bộ Danh mục",
+    "portfolio": "Danh mục",
+    "securitiesAccounts": "Tài khoản Chứng khoán",
+    "cashAccounts": "Tài khoản Tiền mặt",
+    "cryptocurrencyAccounts": "Tài khoản Tiền điện tử",
+    "otherAccounts": "Tài khoản Khác",
+    "selectAccount": "Chọn Tài khoản",
+    "addAccount": "Thêm tài khoản",
+    "selectAnAccount": "Chọn một tài khoản",
+    "searchAccounts": "Tìm kiếm tài khoản...",
+    "chooseAccountToAdd": "Chọn tài khoản để thêm vào so sánh"
+  },
+  "search": {
+    "noSymbolsFound": "Không tìm thấy mã nào",
+    "somethingWentWrong": "Đã xảy ra lỗi"
+  },
+  "charts": {
+    "totalValue": "Tổng giá trị",
+    "netContribution": "Vốn ròng"
+  },
+  "intervals": {
+    "1D": "Ngày qua",
+    "1W": "Tuần qua",
+    "1M": "Tháng qua",
+    "3M": "3 tháng qua",
+    "6M": "6 tháng qua",
+    "YTD": "Đầu năm đến nay",
+    "1Y": "Năm qua",
+    "3Y": "3 năm qua",
+    "5Y": "5 năm qua",
+    "ALL": "Toàn thời gian"
+  },
+  "launcher": {
+    "searchPlaceholder": "Tìm kiếm hành động, danh mục hoặc tài khoản...",
+    "noMatches": "Không tìm thấy kết quả.",
+    "groups": {
+      "actions": "Hành động",
+      "holdings": "Danh mục",
+      "accounts": "Tài khoản"
+    },
+    "loading": {
+      "holdings": "Đang tải danh mục...",
+      "accounts": "Đang tải tài khoản..."
+    },
+    "actions": {
+      "showBalance": "Hiển thị số dư",
+      "hideBalance": "Ẩn số dư",
+      "themeLight": "Giao diện → Sáng",
+      "themeDark": "Giao diện → Tối",
+      "themeSystem": "Giao diện → Hệ thống",
+      "updateMarketData": "Cập nhật dữ liệu thị trường",
+      "updatingMarketData": "Đang cập nhật dữ liệu thị trường...",
+      "recalculatePortfolio": "Tính toán lại danh mục",
+      "recalculatingPortfolio": "Đang tính toán lại danh mục...",
+      "recordBuy": "Ghi nhận Mua",
+      "recordSell": "Ghi nhận Bán",
+      "recordDividend": "Ghi nhận Cổ tức",
+      "recordDeposit": "Ghi nhận Nạp tiền",
+      "recordWithdrawal": "Ghi nhận Rút tiền",
+      "addHolding": "Thêm tài sản",
+      "recordInterest": "Ghi nhận Lãi suất",
+      "addTransaction": "Thêm giao dịch",
+      "importActivities": "Nhập hoạt động",
+      "manageSecurities": "Quản lý chứng khoán"
+    }
+  }
+}

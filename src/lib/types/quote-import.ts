@@ -29,10 +29,12 @@ export interface QuoteImportState {
   isImporting: boolean;
   importProgress: number;
   error: string | null;
+  overwriteExisting: boolean;
 }
 
 export interface QuoteImportActions {
   setFile: (file: File | null) => void;
+  setOverwriteExisting: (overwrite: boolean) => void;
   validateFile: () => Promise<boolean>;
   importQuotes: () => Promise<boolean>;
   reset: () => void;

@@ -1,16 +1,17 @@
 import { Holding, HoldingType } from "@/lib/types";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  DonutChart,
-  EmptyPlaceholder,
-  Skeleton,
-} from "@wealthfolio/ui";
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    DonutChart,
+    EmptyPlaceholder,
+    Skeleton,
+} from "@wealthvn/ui";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-function getClassData(holdings: Holding[]) {
+function getClassData(holdings: Holding[], t: any) {
   if (!holdings?.length) return [];
 
   const currency = holdings[0]?.baseCurrency || "USD";
@@ -18,7 +19,7 @@ function getClassData(holdings: Holding[]) {
   const classes = holdings.reduce(
     (acc, holding) => {
       const isCash = holding.holdingType === HoldingType.CASH;
-      const assetSubClass = isCash ? "Cash" : holding.instrument?.assetSubclass || "Other";
+      const assetSubClass = isCash ? t("page.cash") : holding.instrument?.assetSubclass || t("common:common.other");
 
       const current = acc[assetSubClass] || 0;
       const value = Number(holding.marketValue?.base) || 0;
@@ -41,9 +42,10 @@ interface ClassesChartProps {
 }
 
 export function ClassesChart({ holdings, isLoading, onClassSectionClick }: ClassesChartProps) {
+  const { t } = useTranslation(["holdings", "common"]);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const data = useMemo(() => getClassData(holdings ?? []), [holdings]);
+  const data = useMemo(() => getClassData(holdings ?? [], t), [holdings, t]);
 
   const handleInternalSectionClick = (sectionData: {
     name: string;
@@ -82,7 +84,7 @@ export function ClassesChart({ holdings, isLoading, onClassSectionClick }: Class
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-muted-foreground text-sm font-medium tracking-wider uppercase">
-            Asset Allocation
+            {t("charts.assetAllocation")}
           </CardTitle>
         </div>
       </CardHeader>
@@ -96,7 +98,7 @@ export function ClassesChart({ holdings, isLoading, onClassSectionClick }: Class
             endAngle={0}
           />
         ) : (
-          <EmptyPlaceholder description="There is no class data available for your holdings." />
+          <EmptyPlaceholder description={t("charts.noDataAvailable")} />
         )}
       </CardContent>
     </Card>

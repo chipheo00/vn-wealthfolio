@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Check, ChevronDown } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface SelectOption {
   value: string;
@@ -33,7 +34,6 @@ interface SelectCellProps {
   isFocused?: boolean;
   renderValue?: (value: string) => React.ReactNode;
   className?: string;
-  disabled?: boolean;
 }
 
 export function SelectCell({
@@ -45,18 +45,17 @@ export function SelectCell({
   isFocused = false,
   renderValue,
   className,
-  disabled = false,
 }: SelectCellProps) {
+  const { t } = useTranslation(["activity"]);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const cellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (disabled) return;
     if (isFocused && !open && cellRef.current) {
       cellRef.current.focus();
     }
-  }, [disabled, isFocused, open]);
+  }, [isFocused, open]);
 
   const handleSelect = (selectedOption: SelectOption) => {
     onChange(selectedOption.value);
@@ -115,22 +114,6 @@ export function SelectCell({
     onFocus?.();
   };
 
-  if (disabled) {
-    const selectedOption = options.find((option) => option.value === value);
-    return (
-      <div
-        className={cn(
-          "flex h-full w-full cursor-not-allowed items-center justify-between gap-2 px-2 py-1.5 text-xs text-muted-foreground",
-          className,
-        )}
-      >
-        <span className="flex-1">
-          {renderValue ? renderValue(value) : selectedOption?.label ?? value}
-        </span>
-      </div>
-    );
-  }
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -148,7 +131,7 @@ export function SelectCell({
           )}
         >
           <span className="flex-1">
-            {renderValue ? renderValue(value) : selectedOption?.label ?? value}
+            {renderValue ? renderValue(value) : (selectedOption?.label ?? value)}
           </span>
           <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
         </div>
@@ -160,13 +143,13 @@ export function SelectCell({
       >
         <Command>
           <CommandInput
-            placeholder="Search..."
+            placeholder={t("activity:datagrid.searchPlaceholder")}
             value={search}
             onValueChange={setSearch}
             autoFocus
           />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>{t("activity:datagrid.noResultsFound")}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem

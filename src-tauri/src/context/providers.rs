@@ -1,7 +1,6 @@
 use super::registry::ServiceContext;
-use crate::secret_store::shared_secret_store;
 use std::sync::{Arc, RwLock};
-use wealthfolio_core::{
+use wealthvn_core::{
     accounts::{AccountRepository, AccountService},
     activities::{ActivityRepository, ActivityService},
     db::{self, write_actor},
@@ -61,12 +60,11 @@ pub async fn initialize_context(
     let base_currency = Arc::new(RwLock::new(base_currency_string.clone()));
     let instance_id = Arc::new(settings.instance_id.clone());
 
-    let secret_store = shared_secret_store();
     let market_data_service: Arc<dyn MarketDataServiceTrait> = Arc::new(
-        MarketDataService::new(
+        MarketDataService::with_pool(
             market_data_repo.clone(),
             asset_repository.clone(),
-            secret_store.clone(),
+            Some(pool.clone()),
         )
         .await?,
     );
@@ -74,6 +72,7 @@ pub async fn initialize_context(
     let asset_service = Arc::new(AssetService::new(
         asset_repository.clone(),
         market_data_service.clone(),
+        market_data_repo.clone(),
     )?);
 
     let account_service = Arc::new(AccountService::new(
@@ -87,6 +86,7 @@ pub async fn initialize_context(
         account_service.clone(),
         asset_service.clone(),
         fx_service.clone(),
+        market_data_service.clone(),
     ));
     let goal_service = Arc::new(GoalService::new(goal_repo.clone()));
     let limits_service = Arc::new(ContributionLimitService::new(

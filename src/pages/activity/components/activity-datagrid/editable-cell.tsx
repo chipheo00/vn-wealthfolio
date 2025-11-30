@@ -33,7 +33,7 @@ export function EditableCell({
   inputMode = "text",
   placeholder,
   className,
-  disabled = false,
+  disabled: _disabled,
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
@@ -170,19 +170,6 @@ export function EditableCell({
   const handleCellFocus = () => {
     onFocus?.();
   };
-
-  if (disabled) {
-    return (
-      <div
-        className={cn(
-          "flex h-full w-full cursor-not-allowed items-center px-2 py-1.5 text-xs text-muted-foreground",
-          className,
-        )}
-      >
-        {displayValue ?? value ?? "\u00A0"}
-      </div>
-    );
-  }
 
   if (isEditing) {
     return (

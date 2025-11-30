@@ -15,28 +15,15 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "copyright": "2025 Teymz Inc.",
-  "category": "Finance",
-  "createUpdaterArtifacts": "v1Compatible",
-  "iOS": {
-    "developmentTeam": "DYDJ2RNL5H"
-  }
+    "copyright": "2025 CFPM Inc.",
+    "category": "Finance",
+    "createUpdaterArtifacts": false
   },
-  "productName": "Wealthfolio",
-  "mainBinaryName": "Wealthfolio",
-  "version": "2.0.1",
-  "identifier": "com.teymz.wealthfolio",
-  "plugins": {
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY0RjI4MkRFOUYwRDM3N0QKUldSOU53MmYzb0x5WlBySmErU21wcjVHZFNtMW9zdGcyZTBBRWpVcHRDMkoyKzF1bkQ1VmdKbkYK",
-      "endpoints": [
-        "https://wealthfolio.app/releases/{{target}}/{{arch}}/{{current_version}}"
-      ],
-      "windows": {
-        "installMode": "passive"
-      }
-    }
-  },
+  "productName": "Wealth VN",
+  "mainBinaryName": "WealthVN",
+  "version": "1.0.0",
+  "identifier": "com.wealthvn.app",
+  "plugins": {},
   "app": {
     "withGlobalTauri": true,
     "windows": [
@@ -56,5 +43,13 @@
     "security": {
       "csp": null
   }
+  },
+  "plugins": {
+  "updater": {
+    "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE1NTI3QTlCOUQ1ODczNzUKUldSMWMxaWRtM3BTRlpxQ1JmUzZGb29jSld1ZHM0RW1wMnZsb2tWUXNmaTNZcmNGeGVwbUl3cHgK",
+    "endpoints": [
+      "https://github.com/chipheo00/vn-wealthfolio/releases/latest/download/latest.json"
+    ]
   }
+}
 }

@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { searchTicker } from "@/commands/market-data";
 import { QueryKeys } from "@/lib/query-keys";
 import type { QuoteSummary } from "@/lib/types";
+import { useTranslation } from "react-i18next";
 
 interface SymbolAutocompleteCellProps {
   value: string;
@@ -36,8 +37,9 @@ export function SymbolAutocompleteCell({
   onNavigate,
   isFocused = false,
   className,
-  disabled = false,
+  disabled: _disabled,
 }: SymbolAutocompleteCellProps) {
+  const { t } = useTranslation(["activity"]);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const cellRef = useRef<HTMLDivElement>(null);
@@ -58,20 +60,18 @@ export function SymbolAutocompleteCell({
   }, [data]);
 
   useEffect(() => {
-    if (disabled) return;
     if (isFocused && !isEditing && cellRef.current) {
       cellRef.current.focus();
     }
-  }, [disabled, isFocused, isEditing]);
+  }, [isFocused, isEditing]);
 
   useEffect(() => {
-    if (disabled) return;
     if (isEditing) {
       requestAnimationFrame(() => {
         inputRef.current?.focus();
       });
     }
-  }, [disabled, isEditing]);
+  }, [isEditing]);
 
   const handleSelect = (symbol: string) => {
     onChange(symbol);
@@ -128,19 +128,6 @@ export function SymbolAutocompleteCell({
     return option.longName || option.shortName || option.symbol;
   };
 
-  if (disabled) {
-    return (
-      <div
-        className={cn(
-          "flex h-full w-full cursor-not-allowed items-center px-2 py-1.5 text-xs text-muted-foreground",
-          className,
-        )}
-      >
-        {value || "TICKER"}
-      </div>
-    );
-  }
-
   return (
     <Popover open={isEditing} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -157,14 +144,14 @@ export function SymbolAutocompleteCell({
             className,
           )}
         >
-          {value || "TICKER"}
+          {value || t("activity:datagrid.ticker")}
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0 text-xs" align="start">
         <Command shouldFilter={false}>
           <CommandInput
             ref={inputRef}
-            placeholder="Search symbol or company..."
+            placeholder={t("activity:datagrid.searchSymbol")}
             value={searchQuery}
             onValueChange={setSearchQuery}
             onKeyDown={(e) => {
@@ -179,12 +166,12 @@ export function SymbolAutocompleteCell({
             }}
           />
           <CommandList>
-            {isLoading ? <CommandEmpty>Loading...</CommandEmpty> : null}
+            {isLoading ? <CommandEmpty>{t("activity:datagrid.loading")}</CommandEmpty> : null}
             {!isLoading && isError ? (
-              <CommandEmpty>Failed to load symbols.</CommandEmpty>
+              <CommandEmpty>{t("activity:datagrid.loadFailed")}</CommandEmpty>
             ) : null}
             {!isLoading && !isError && options.length === 0 ? (
-              <CommandEmpty>No symbols found.</CommandEmpty>
+              <CommandEmpty>{t("activity:datagrid.noSymbolsFound")}</CommandEmpty>
             ) : null}
             {!isLoading && !isError && options.length > 0 ? (
               <CommandGroup>

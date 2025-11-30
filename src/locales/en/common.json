@@ -1,0 +1,130 @@
+{
+  "appName": "WealthVN",
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "close": "Close",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "refresh": "Refresh",
+    "reset": "Reset",
+    "clear": "Clear",
+    "apply": "Apply",
+    "view": "View"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "holdings": "Holdings",
+    "performance": "Performance",
+    "income": "Income",
+    "activities": "Activities",
+    "trading": "Tradings",
+    "activity": "Activity",
+    "accounts": "Accounts",
+    "settings": "Settings",
+    "goals": "Goals",
+    "assets": "Assets"
+  },
+  "common": {
+    "name": "Name",
+    "type": "Type",
+    "date": "Date",
+    "amount": "Amount",
+    "price": "Price",
+    "quantity": "Quantity",
+    "total": "Total",
+    "balance": "Balance",
+    "status": "Status",
+    "description": "Description",
+    "currency": "Currency",
+    "symbol": "Symbol",
+    "value": "Value",
+    "change": "Change",
+    "percent": "Percent",
+    "yes": "Yes",
+    "no": "No",
+    "moreInfoAbout": "More info about {{label}}",
+    "annualized": "Annualized:",
+    "other": "Other",
+    "na": "N/A",
+    "accountCount_one": "{{count}} account",
+    "accountCount_other": "{{count}} accounts"
+  },
+  "accounts": {
+    "allPortfolio": "All Portfolio",
+    "portfolio": "Portfolio",
+    "securitiesAccounts": "Securities Accounts",
+    "cashAccounts": "Cash Accounts",
+    "cryptocurrencyAccounts": "Cryptocurrency Accounts",
+    "otherAccounts": "Other Accounts",
+    "selectAccount": "Select Account",
+    "addAccount": "Add account",
+    "selectAnAccount": "Select an account",
+    "searchAccounts": "Search accounts...",
+    "chooseAccountToAdd": "Choose an account to add to comparison"
+  },
+  "search": {
+    "noSymbolsFound": "No symbols found",
+    "somethingWentWrong": "Something went wrong"
+  },
+  "charts": {
+    "totalValue": "Total Value",
+    "netContribution": "Net Contribution"
+  },
+  "intervals": {
+    "1D": "Past day",
+    "1W": "Past week",
+    "1M": "Past month",
+    "3M": "Past 3 months",
+    "6M": "Past 6 months",
+    "YTD": "Year to date",
+    "1Y": "Past year",
+    "3Y": "Past 3 years",
+    "5Y": "Past 5 years",
+    "ALL": "All Time"
+  },
+  "launcher": {
+    "searchPlaceholder": "Search actions, holdings, or accounts...",
+    "noMatches": "No matches found.",
+    "groups": {
+      "actions": "Actions",
+      "holdings": "Holdings",
+      "accounts": "Accounts"
+    },
+    "loading": {
+      "holdings": "Loading holdings...",
+      "accounts": "Loading accounts..."
+    },
+    "actions": {
+      "showBalance": "Show Balance",
+      "hideBalance": "Hide Balance",
+      "themeLight": "Theme → Light",
+      "themeDark": "Theme → Dark",
+      "themeSystem": "Theme → System",
+      "updateMarketData": "Update Market Data",
+      "updatingMarketData": "Updating market data...",
+      "recalculatePortfolio": "Recalculate Portfolio",
+      "recalculatingPortfolio": "Recalculating portfolio...",
+      "recordBuy": "Record Buy",
+      "recordSell": "Record Sell",
+      "recordDividend": "Record Dividend",
+      "recordDeposit": "Record Deposit",
+      "recordWithdrawal": "Record Withdrawal",
+      "addHolding": "Add Holding",
+      "recordInterest": "Record Interest",
+      "addTransaction": "Add Transaction",
+      "importActivities": "Import Activities",
+      "manageSecurities": "Manage Securities"
+    }
+  }
+}

@@ -12,8 +12,9 @@ import {
   PageContent,
   PageHeader,
   PrivacyAmount,
-} from "@wealthfolio/ui";
+} from "@wealthvn/ui";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAccounts } from "@/hooks/use-accounts";
+import { usePortfolioDividends } from "@/hooks/use-portfolio-dividends";
 import { useValuationHistory } from "@/hooks/use-valuation-history";
 import { AccountType } from "@/lib/constants";
 import { QueryKeys } from "@/lib/query-keys";
@@ -51,7 +53,7 @@ import { calculatePerformanceMetrics, cn } from "@/lib/utils";
 import { PortfolioUpdateTrigger } from "@/pages/dashboard/portfolio-update-trigger";
 import { useCalculatePerformanceHistory } from "@/pages/performance/hooks/use-performance-data";
 import { useQuery } from "@tanstack/react-query";
-import { Icons, type Icon } from "@wealthfolio/ui";
+import { Icons, type Icon } from "@wealthvn/ui";
 import { subMonths } from "date-fns";
 import { useNavigate, useParams } from "react-router-dom";
 import { AccountContributionLimit } from "./account-contribution-limit";
@@ -82,6 +84,7 @@ const getInitialDateRange = (): DateRange => ({
 const INITIAL_INTERVAL_CODE: TimePeriod = "3M";
 
 const AccountPage = () => {
+  const { t } = useTranslation("accounts");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(getInitialDateRange());
@@ -137,6 +140,9 @@ const AccountPage = () => {
     id,
   );
 
+  const { data: dividendData } = usePortfolioDividends();
+  const accountDividends = dividendData?.dividendsByAccount.get(id) || 0;
+
   // Calculate gainLossAmount and simpleReturn from valuationHistory
   const { gainLossAmount: frontendGainLossAmount, simpleReturn: frontendSimpleReturn } =
     useMemo(() => {
@@ -154,6 +160,15 @@ const AccountPage = () => {
   }, [valuationHistory]);
 
   const currentValuation = valuationHistory?.[valuationHistory.length - 1];
+
+  const adjustedValuation = useMemo(() => {
+    if (!currentValuation) return currentValuation;
+    // Adjust cost basis by subtracting dividends to show "Net Capital at Risk"
+    return {
+      ...currentValuation,
+      costBasis: Math.max(0, currentValuation.costBasis - accountDividends),
+    };
+  }, [currentValuation, accountDividends]);
 
   const isLoading = isAccountsLoading || isValuationHistoryLoading;
   const isDetailsLoading = isLoading || isPerformanceHistoryLoading;
@@ -188,7 +203,7 @@ const AccountPage = () => {
   return (
     <Page>
       <PageHeader
-        heading={account?.name ?? "Account"}
+        heading={account?.name ?? t("page.accountFallback")}
         text={account?.group ?? account?.currency}
         onBack={() => navigate(-1)}
         actions={
@@ -363,16 +378,16 @@ const AccountPage = () => {
                 </CardContent>
               </Card>
 
-              <div className="flex flex-col space-y-4">
-                <AccountMetrics
-                  valuation={currentValuation}
-                  performance={accountPerformance}
-                  className="grow"
-                  isLoading={isDetailsLoading || isPerformanceHistoryLoading}
-                />
-                <AccountContributionLimit accountId={id} />
-              </div>
-            </div>
+          <div className="flex flex-col space-y-4">
+            <AccountMetrics
+              valuation={adjustedValuation}
+              performance={accountPerformance}
+              className="grow"
+              isLoading={isDetailsLoading || isPerformanceHistoryLoading}
+            />
+            <AccountContributionLimit accountId={id} />
+          </div>
+        </div>
 
             <AccountHoldings accountId={id} />
           </>

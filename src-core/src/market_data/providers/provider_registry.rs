@@ -1,22 +1,27 @@
 use crate::market_data::market_data_constants::{
     DATA_SOURCE_ALPHA_VANTAGE, DATA_SOURCE_MANUAL, DATA_SOURCE_MARKET_DATA_APP,
-    DATA_SOURCE_METAL_PRICE_API, DATA_SOURCE_YAHOO,
+    DATA_SOURCE_METAL_PRICE_API, DATA_SOURCE_VN_MARKET, DATA_SOURCE_YAHOO,
 };
 use crate::market_data::market_data_errors::MarketDataError;
 use crate::market_data::market_data_model::{
-    MarketDataProviderSetting, Quote as ModelQuote, QuoteSummary,
+    MarketDataProviderSetting, Quote as ModelQuote, QuoteSummary, QuoteRequest, DataSource,
 };
+use std::collections::{HashMap, HashSet};
+use log::{debug, info, warn, error};
 use crate::market_data::providers::alpha_vantage_provider::AlphaVantageProvider;
 use crate::market_data::providers::manual_provider::ManualProvider;
 use crate::market_data::providers::market_data_provider::{AssetProfiler, MarketDataProvider};
 use crate::market_data::providers::marketdata_app_provider::MarketDataAppProvider;
 use crate::market_data::providers::metal_price_api_provider::MetalPriceApiProvider;
 use crate::market_data::providers::yahoo_provider::YahooProvider;
-use crate::secrets::SecretStore;
-use log::{debug, info, warn};
-use std::collections::HashMap;
+use crate::market_data::providers::vn_market_provider::VnMarketProvider;
+use crate::secrets::SecretManager;
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::SqliteConnection;
 use std::sync::Arc;
 use std::time::SystemTime;
+
+type DbPool = Pool<ConnectionManager<SqliteConnection>>;
 
 pub struct ProviderRegistry {
     data_providers: HashMap<String, Arc<dyn MarketDataProvider + Send + Sync>>,
@@ -26,9 +31,17 @@ pub struct ProviderRegistry {
 }
 
 impl ProviderRegistry {
+    /// Create a new provider registry without DB pool (VN gold cache disabled)
     pub async fn new(
         provider_settings: Vec<MarketDataProviderSetting>,
-        secret_store: Arc<dyn SecretStore>,
+    ) -> Result<Self, MarketDataError> {
+        Self::with_pool(provider_settings, None).await
+    }
+
+    /// Create a new provider registry with optional DB pool for VN gold cache
+    pub async fn with_pool(
+        provider_settings: Vec<MarketDataProviderSetting>,
+        pool: Option<Arc<DbPool>>,
     ) -> Result<Self, MarketDataError> {
         let mut active_providers_with_priority: Vec<(
             i32,
@@ -49,7 +62,7 @@ impl ProviderRegistry {
             let provider_id_str = &setting.id;
 
             let api_key = if provider_id_str != DATA_SOURCE_YAHOO {
-                match secret_store.get_secret(provider_id_str) {
+                match SecretManager::get_secret(provider_id_str) {
                     Ok(key_opt) => key_opt,
                     Err(e) => {
                         warn!(
@@ -121,6 +134,18 @@ impl ProviderRegistry {
                         warn!("MetalPriceApi provider '{}' (ID: {}) is enabled but requires an API key, which was not found or resolved. Skipping.", setting.name, setting.id);
                         (None, None)
                     }
+                }
+                DATA_SOURCE_VN_MARKET => {
+                    // Use pool for VN gold cache if available
+                    let p = if let Some(ref db_pool) = pool {
+                        Arc::new(VnMarketProvider::with_pool((**db_pool).clone()))
+                    } else {
+                        Arc::new(VnMarketProvider::new())
+                    };
+                    (
+                        Some(p.clone() as Arc<dyn MarketDataProvider + Send + Sync>),
+                        Some(p as Arc<dyn AssetProfiler + Send + Sync>),
+                    )
                 }
                 _ => {
                     warn!("Unknown market data provider ID: {}. Skipping.", setting.id);
@@ -197,6 +222,11 @@ impl ProviderRegistry {
             .collect()
     }
 
+    /// Get the ordered list of profiler IDs by priority
+    pub fn get_ordered_profiler_ids(&self) -> &[String] {
+        &self.ordered_profiler_ids
+    }
+
     pub async fn historical_quotes(
         &self,
         symbol: &str,
@@ -232,61 +262,124 @@ impl ProviderRegistry {
 
     pub async fn historical_quotes_bulk(
         &self,
-        symbols_with_currencies: &[(String, String)],
+        quote_requests: &[QuoteRequest],
         start: SystemTime,
         end: SystemTime,
     ) -> Result<(Vec<ModelQuote>, Vec<(String, String)>), MarketDataError> {
         if self.ordered_data_provider_ids.is_empty() {
             warn!("No data providers available for historical_quotes_bulk.");
-            return Ok((vec![], symbols_with_currencies.to_vec()));
+            return Ok((vec![], quote_requests.iter().map(|req| (req.symbol.clone(), req.currency.clone())).collect()));
         }
 
         let mut all_quotes = Vec::new();
-        let mut remaining_symbols = symbols_with_currencies.to_vec();
+        let mut remaining_requests = quote_requests.to_vec();
+
+        // Group symbols by their explicit data_source to avoid unnecessary API calls
+        let provider_symbol_assignments = self.assign_symbols_to_providers(&quote_requests);
 
         for (provider_id, provider) in self.get_enabled_providers() {
-            if remaining_symbols.is_empty() {
+            if remaining_requests.is_empty() {
                 break;
             }
 
+            // Get requests that this provider should handle based on explicit data_source
+            let provider_requests = provider_symbol_assignments
+                .get(provider_id)
+                .map(|requests| requests.iter().filter(|req| remaining_requests.iter().any(|rreq| rreq.symbol == req.symbol && rreq.data_source == req.data_source)).cloned().collect::<Vec<_>>())
+                .unwrap_or_else(Vec::new);
+
+            if provider_requests.is_empty() {
+                debug!("No requests assigned to provider '{}'", provider_id);
+                continue;
+            }
+
             info!(
-                "Using provider '{}' to fetch bulk historical quotes for {} symbols.",
+                "Using provider '{}' to fetch bulk historical quotes for {} assigned requests ({} total remaining).",
                 provider_id,
-                remaining_symbols.len()
+                provider_requests.len(),
+                remaining_requests.len()
             );
+
+            let symbols_with_currencies: Vec<(String, String)> = provider_requests
+                .iter()
+                .map(|req| (req.symbol.clone(), req.currency.clone()))
+                .collect();
+
             match provider
-                .get_historical_quotes_bulk(&remaining_symbols, start, end)
+                .get_historical_quotes_bulk(&symbols_with_currencies, start, end)
                 .await
             {
                 Ok((quotes, failed)) => {
-                    all_quotes.extend(quotes);
+                    debug!("Successfully fetched {} public quotes.", quotes.len());
                     if !failed.is_empty() {
                         warn!(
                             "Provider '{}' failed to fetch data for {} symbols. Retrying with next provider.",
                             provider_id,
                             failed.len()
                         );
+                        // Keep failed requests for next provider
+                    } else {
+                        // Remove successfully fetched requests from remaining list
+                        let successfully_fetched_symbols: HashSet<String> = quotes.iter().map(|q| q.symbol.clone()).collect();
+                        remaining_requests.retain(|req| !successfully_fetched_symbols.contains(&req.symbol));
                     }
-                    remaining_symbols = failed;
+                    all_quotes.extend(quotes);
                 }
                 Err(e) => {
-                    warn!(
-                        "Provider '{}' returned an error for bulk fetch: {:?}. Trying next provider.",
+                    error!(
+                        "Provider '{}' failed completely: {:?}. All assigned requests will be retried with next provider.",
                         provider_id, e
                     );
                 }
             }
         }
 
-        if !remaining_symbols.is_empty() {
+        if !remaining_requests.is_empty() {
             warn!(
-                "After trying all providers, failed to fetch data for {:?} symbols.",
-                remaining_symbols
+                "After trying all providers, failed to fetch data for {:?} requests.",
+                remaining_requests.iter().map(|req| (req.symbol.clone(), req.data_source.clone())).collect::<Vec<_>>()
             );
         }
 
-        Ok((all_quotes, remaining_symbols))
+        // Return any remaining requests as failures
+        let final_failures = remaining_requests
+            .into_iter()
+            .map(|req| {
+                let symbol = req.symbol.clone();
+                (symbol, format!("No provider could fetch data for symbol {} with data_source {:?}", req.symbol, req.data_source))
+            })
+            .collect();
+
+        Ok((all_quotes, final_failures))
+    }    fn assign_symbols_to_providers(
+        &self,
+        quote_requests: &[QuoteRequest],
+    ) -> HashMap<String, Vec<QuoteRequest>> {
+        let mut assignments: HashMap<String, Vec<QuoteRequest>> = HashMap::new();
+
+        for quote_request in quote_requests {
+            let provider_id = match quote_request.data_source {
+                DataSource::Yahoo => DATA_SOURCE_YAHOO.to_string(),
+                DataSource::AlphaVantage => DATA_SOURCE_ALPHA_VANTAGE.to_string(),
+                DataSource::MetalPriceApi => DATA_SOURCE_METAL_PRICE_API.to_string(),
+                DataSource::MarketDataApp => DATA_SOURCE_MARKET_DATA_APP.to_string(),
+                DataSource::VnMarket => DATA_SOURCE_VN_MARKET.to_string(),
+                DataSource::Manual => {
+                    warn!("Manual data source requested for sync, skipping: {}", quote_request.symbol);
+                    continue;
+                }
+            };
+
+            assignments
+                .entry(provider_id)
+                .or_insert_with(Vec::new)
+                .push(quote_request.clone());
+        }
+
+        assignments
     }
+
+
 
     pub async fn get_asset_profile(
         &self,
@@ -309,29 +402,49 @@ impl ProviderRegistry {
         Err(MarketDataError::NotFound(symbol.to_string()))
     }
 
-    pub async fn search_ticker(&self, query: &str) -> Result<Vec<QuoteSummary>, MarketDataError> {
-        for (profiler_id, profiler) in self.get_enabled_profilers() {
-            match profiler.search_ticker(query).await {
-                Ok(results) if !results.is_empty() => {
-                    return Ok(results);
-                }
-                Ok(_) => {
-                    info!(
-                        "Profiler '{}' found no results for query '{}'. Trying next.",
-                        profiler_id, query
-                    );
-                }
-                Err(e) => {
-                    debug!(
-                        "Profiler '{}' failed to search for query '{}': {:?}. Trying next.",
-                        profiler_id, query, e
-                    );
-                }
-            }
-        }
+    /// Search all providers in parallel and return combined results with provider IDs
+    pub async fn search_ticker_parallel(
+            &self,
+            query: &str,
+        ) -> Result<Vec<(String, QuoteSummary)>, MarketDataError> {
+        use futures::future::join_all;
 
-        Err(MarketDataError::ProviderError(
-            "Search ticker is not supported by any active provider".to_string(),
-        ))
-    }
+        let profilers = self.get_enabled_profilers();
+
+        // Create futures for all profilers
+        let search_futures: Vec<_> = profilers
+            .iter()
+            .map(|(provider_id, profiler)| {
+            let id = (*provider_id).clone();
+            let query_str = query.to_string();
+        let profiler_clone = Arc::clone(profiler);
+
+        async move {
+                    match profiler_clone.search_ticker(&query_str).await {
+                Ok(results) => {
+                info!("Provider '{}' found {} results for '{}'", id, results.len(), query_str);
+            // Tag each result with provider ID for priority sorting
+        results.into_iter().map(|r| (id.clone(), r)).collect::<Vec<_>>()
+        }
+        Err(e) => {
+            debug!("Provider '{}' search failed: {:?}", id, e);
+            vec![]
+        }
+        }
+        }
+        })
+        .collect();
+
+        // Execute all searches in parallel
+        let all_results = join_all(search_futures).await;
+
+        // Flatten results: Vec<Vec<(provider_id, QuoteSummary)>> -> Vec<(provider_id, QuoteSummary)>
+        let combined: Vec<(String, QuoteSummary)> = all_results
+        .into_iter()
+        .flatten()
+            .collect();
+
+        info!("Parallel search completed: {} total results from all providers", combined.len());
+        Ok(combined)
+        }
 }

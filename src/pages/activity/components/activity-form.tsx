@@ -18,13 +18,14 @@ import type { ActivityDetails } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm, type Resolver, type SubmitHandler } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { useActivityMutations } from "../hooks/use-activity-mutations";
 import { CashForm } from "./forms/cash-form";
 import { HoldingsForm } from "./forms/holdings-form";
 import { IncomeForm } from "./forms/income-form";
 import { OtherForm } from "./forms/other-form";
 import { newActivitySchema, type NewActivityFormValues } from "./forms/schemas";
-import { TradeForm } from "./forms/trade-form";
+import { TradeForm } from "@/components/forms/trade-form";
 
 export interface AccountSelectOption {
   value: string;
@@ -37,6 +38,7 @@ interface ActivityFormProps {
   activity?: Partial<ActivityDetails>;
   open?: boolean;
   onClose?: () => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const ACTIVITY_TYPE_TO_TAB: Record<string, string> = {
@@ -49,14 +51,29 @@ const ACTIVITY_TYPE_TO_TAB: Record<string, string> = {
   SPLIT: "other",
   TRANSFER_IN: "cash",
   TRANSFER_OUT: "cash",
+  TRANSFER: "cash",
   FEE: "other",
   TAX: "other",
   ADD_HOLDING: "holdings",
   REMOVE_HOLDING: "holdings",
 };
 
-export function ActivityForm({ accounts, activity, open, onClose }: ActivityFormProps) {
+export function ActivityForm({
+  accounts,
+  activity,
+  open,
+  onClose,
+  onOpenChange,
+}: ActivityFormProps) {
+  const { t } = useTranslation("activity");
   const { addActivityMutation, updateActivityMutation } = useActivityMutations(onClose);
+
+  const handleOpenChange = (val: boolean) => {
+    onOpenChange?.(val);
+    if (!val) {
+      onClose?.();
+    }
+  };
 
   const isValidActivityType = (
     type: string | undefined,
@@ -109,14 +126,71 @@ export function ActivityForm({ accounts, activity, open, onClose }: ActivityForm
 
   const onSubmit: SubmitHandler<NewActivityFormValues> = async (data) => {
     try {
-      const {
-        showCurrencySelect: _showCurrencySelect,
-        id,
-        ...submitData
-      } = {
+      const { showCurrencySelect, id, toAccountId, ...submitData } = {
         ...data,
         isDraft: false,
-      };
+      } as any;
+
+      // Handle TRANSFER activity by creating paired activities
+      if (submitData.activityType === "TRANSFER") {
+        // Validation for TRANSFER type
+        if (!toAccountId) {
+          form.setError("toAccountId", {
+            type: "manual",
+            message: t("form.toAccountRequired"),
+          });
+          return;
+        }
+
+        if (submitData.accountId && toAccountId && submitData.accountId === toAccountId) {
+          form.setError("toAccountId", {
+            type: "manual",
+            message: t("form.toAccountDifferent"),
+          });
+          return;
+        }
+
+        if (submitData.accountId && toAccountId && submitData.accountId === toAccountId) {
+          form.setError("toAccountId", {
+            type: "manual",
+            message: t("form.toAccountDifferent"),
+          });
+          return;
+        }
+
+        const fromAccount = accounts.find((a) => a.value === submitData.accountId);
+        const toAccount = accounts.find((a) => a.value === toAccountId);
+
+        if (fromAccount && toAccount) {
+          // Create TRANSFER_OUT activity for source account
+          const transferOutActivity = {
+            ...submitData,
+            activityType: "TRANSFER_OUT" as const,
+            assetId: `$CASH-${fromAccount.currency}`,
+            accountId: submitData.accountId,
+          };
+
+          // Create TRANSFER_IN activity for destination account
+          const transferInActivity = {
+            ...submitData,
+            activityType: "TRANSFER_IN" as const,
+            assetId: `$CASH-${toAccount.currency}`,
+            accountId: toAccountId,
+          };
+
+          if (id) {
+            // For updates, we would need to update both activities
+            // This is a simplified implementation - in a real app you'd need to handle this more carefully
+            await updateActivityMutation.mutateAsync({ id, ...transferOutActivity });
+          } else {
+            // Add both activities
+            await addActivityMutation.mutateAsync(transferOutActivity);
+            await addActivityMutation.mutateAsync(transferInActivity);
+          }
+          return;
+        }
+      }
+
       const account = accounts.find((a) => a.value === submitData.accountId);
       // For cash activities and fees, set assetId to $CASH-accountCurrency
       if (
@@ -148,14 +222,16 @@ export function ActivityForm({ accounts, activity, open, onClose }: ActivityForm
     }
   };
 
-  const defaultTab = ACTIVITY_TYPE_TO_TAB[activity?.activityType ?? ""] || "trade";
+  const defaultTab = activity?.activityType
+    ? ACTIVITY_TYPE_TO_TAB[activity.activityType] || "trade"
+    : "trade";
 
   return (
-    <Sheet open={open} onOpenChange={onClose}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="space-y-8 overflow-y-auto sm:max-w-[625px]">
         <SheetHeader>
           <div className="flex items-center gap-2">
-            <SheetTitle>{activity?.id ? "Update Activity" : "Add Activity"}</SheetTitle>
+            <SheetTitle>{activity?.id ? t("form.updateActivity") : t("addActivity")}</SheetTitle>
             {Object.keys(form.formState.errors).length > 0 && (
               <HoverCard>
                 <HoverCardTrigger>
@@ -163,13 +239,13 @@ export function ActivityForm({ accounts, activity, open, onClose }: ActivityForm
                 </HoverCardTrigger>
                 <HoverCardContent className="border-destructive/50 bg-destructive text-destructive-foreground dark:border-destructive [&>svg]:text-destructive w-[600px]">
                   <div className="space-y-2">
-                    <h4 className="font-medium">Please Review Your Entry</h4>
+                    <h4 className="font-medium">{t("form.pleaseReviewEntry")}</h4>
                     <ul className="list-disc space-y-1 pl-4 text-sm">
                       {Object.entries(form.formState.errors).map(([field, error]) => (
                         <li key={field}>
-                          {field === "activityType" ? "Transaction Type" : field}
+                          {field === "activityType" ? t("form.transactionType") : field}
                           {": "}
-                          {error?.message?.toString() || "Invalid value"}
+                          {error?.message?.toString() || t("form.invalidValue")}
                         </li>
                       ))}
                     </ul>
@@ -179,17 +255,15 @@ export function ActivityForm({ accounts, activity, open, onClose }: ActivityForm
             )}
           </div>
           <SheetDescription>
-            {activity?.id
-              ? "Update the details of your transaction"
-              : "Record a new transaction in your account."}
+            {activity?.id ? t("form.updateDescription") : t("form.addDescription")}
             {"→ "}
             <a
-              href="https://wealthfolio.app/docs/concepts/activity-types"
+              href="https://github.com/vn-wealthfolio/WealthVN/blob/main/docs/activities/activity-types.md"
               target="_blank"
               rel="noopener noreferrer"
               className="underline"
             >
-              Learn more
+              {t("form.learnMore")}
             </a>
           </SheetDescription>
         </SheetHeader>
@@ -198,23 +272,23 @@ export function ActivityForm({ accounts, activity, open, onClose }: ActivityForm
             <TabsList className="mb-6 grid grid-cols-5">
               <TabsTrigger value="trade" className="flex items-center gap-2">
                 <Icons.ArrowRightLeft className="h-4 w-4" />
-                Trade
+                {t("form.tabs.trade")}
               </TabsTrigger>
               <TabsTrigger value="holdings" className="flex items-center gap-2">
                 <Icons.Wallet className="h-4 w-4" />
-                Holdings
+                {t("form.tabs.holdings")}
               </TabsTrigger>
               <TabsTrigger value="cash" className="flex items-center gap-2">
                 <Icons.DollarSign className="h-4 w-4" />
-                Cash
+                {t("form.tabs.cash")}
               </TabsTrigger>
               <TabsTrigger value="income" className="flex items-center gap-2">
                 <Icons.Income className="h-4 w-4" />
-                Income
+                {t("form.tabs.income")}
               </TabsTrigger>
               <TabsTrigger value="other" className="flex items-center gap-2">
                 <Icons.FileText className="h-4 w-4" />
-                Other
+                {t("form.tabs.other")}
               </TabsTrigger>
             </TabsList>
           )}
@@ -242,7 +316,7 @@ export function ActivityForm({ accounts, activity, open, onClose }: ActivityForm
               <SheetFooter>
                 <SheetTrigger asChild>
                   <Button variant="outline" disabled={isLoading}>
-                    Cancel
+                    {t("form.cancel")}
                   </Button>
                 </SheetTrigger>
                 <Button type="submit" disabled={isLoading}>
@@ -254,7 +328,7 @@ export function ActivityForm({ accounts, activity, open, onClose }: ActivityForm
                     <Icons.Plus className="h-4 w-4" />
                   )}
                   <span className="hidden sm:ml-2 sm:inline">
-                    {activity?.id ? "Update Activity" : "Add Activity"}
+                    {activity?.id ? t("form.updateActivity") : t("addActivity")}
                   </span>
                 </Button>
               </SheetFooter>

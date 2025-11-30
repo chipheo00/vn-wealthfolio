@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import { ActivityType, ActivityTypeNames } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { ActivityType, getActivityTypeName } from "@/lib/constants";
+import { useTranslation } from "react-i18next";
 
 interface ActivityTypeBadgeProps {
   type: ActivityType;
@@ -20,22 +20,24 @@ function getActivityBadgeVariant(type: ActivityType) {
     case ActivityType.WITHDRAWAL:
     case ActivityType.TRANSFER_OUT:
     case ActivityType.REMOVE_HOLDING:
+      return "secondary";
     case ActivityType.FEE:
     case ActivityType.TAX:
       return "destructive";
     case ActivityType.SPLIT:
-      return "secondary";
+      return "outline";
     default:
-      return "default";
+      return "outline";
   }
 }
 
 export function ActivityTypeBadge({ type, className }: ActivityTypeBadgeProps) {
+  const { t } = useTranslation("activity");
   const variant = getActivityBadgeVariant(type);
 
   return (
-    <Badge variant={variant} className={cn("rounded-sm", className)}>
-      {ActivityTypeNames[type]}
+    <Badge variant={variant} className={className}>
+      {getActivityTypeName(type, t)}
     </Badge>
   );
 }

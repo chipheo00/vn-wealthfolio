@@ -1,6 +1,7 @@
 import { RUN_ENV, getRunEnv } from "@/adapters";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
+import { LogOut, Rocket } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
@@ -9,7 +10,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@wealthfolio/ui";
+} from "@wealthvn/ui";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { type NavLink, type NavigationProps, isPathActive } from "./app-navigation";
@@ -64,7 +65,7 @@ export function AppSidebar({ navigation }: AppSidebarProps) {
                       },
                     )}
                   >
-                    Wealthfolio
+                    WealthVN
                   </span>
                 </div>
 
@@ -103,7 +104,7 @@ export function AppSidebar({ navigation }: AppSidebarProps) {
                 title="Command Launcher (⌘K)"
               >
                 <span aria-hidden="true">
-                  <Icons.Launcher className="h-5 w-5" />
+                  <Rocket className="h-5 w-5" />
                 </span>
                 <span
                   className={cn({
@@ -130,7 +131,7 @@ export function AppSidebar({ navigation }: AppSidebarProps) {
                   title="Logout"
                 >
                   <span aria-hidden="true">
-                    <Icons.LogOut className="h-5 w-5" />
+                    <LogOut className="h-5 w-5" />
                   </span>
                   <span
                     className={cn({

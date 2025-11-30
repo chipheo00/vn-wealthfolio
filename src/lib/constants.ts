@@ -26,12 +26,23 @@ export const accountTypeSchema = z.enum([
 export const DataSource = {
   YAHOO: "YAHOO",
   MANUAL: "MANUAL",
+  MARKET_DATA_APP: "MARKET_DATA_APP",
+  ALPHA_VANTAGE: "ALPHA_VANTAGE",
+  METAL_PRICE_API: "METAL_PRICE_API",
+  VN_MARKET: "VN_MARKET",
 } as const;
 
 export type DataSource = (typeof DataSource)[keyof typeof DataSource];
 
 // Zod schema for data source validation
-export const dataSourceSchema = z.enum([DataSource.YAHOO, DataSource.MANUAL]);
+export const dataSourceSchema = z.enum([
+  DataSource.YAHOO,
+  DataSource.MANUAL,
+  DataSource.MARKET_DATA_APP,
+  DataSource.ALPHA_VANTAGE,
+  DataSource.METAL_PRICE_API,
+  DataSource.VN_MARKET,
+]);
 
 export const ImportFormat = {
   DATE: "date",
@@ -113,6 +124,7 @@ export const ActivityType = {
   REMOVE_HOLDING: "REMOVE_HOLDING",
   TRANSFER_IN: "TRANSFER_IN",
   TRANSFER_OUT: "TRANSFER_OUT",
+  TRANSFER: "TRANSFER",
   FEE: "FEE",
   TAX: "TAX",
   SPLIT: "SPLIT",
@@ -134,6 +146,7 @@ export const CASH_ACTIVITY_TYPES = [
   ActivityType.INTEREST,
   ActivityType.TRANSFER_IN,
   ActivityType.TRANSFER_OUT,
+  ActivityType.TRANSFER,
   ActivityType.TAX,
   ActivityType.FEE,
 ] as const;
@@ -150,6 +163,7 @@ export const activityTypeSchema = z.enum([
   ActivityType.WITHDRAWAL,
   ActivityType.TRANSFER_IN,
   ActivityType.TRANSFER_OUT,
+  ActivityType.TRANSFER,
   ActivityType.ADD_HOLDING,
   ActivityType.REMOVE_HOLDING,
   ActivityType.FEE,
@@ -157,6 +171,14 @@ export const activityTypeSchema = z.enum([
   ActivityType.SPLIT,
 ]);
 
+// Helper function to get activity type display name with i18n support
+// Pass the translation function from useTranslation("activity")
+export function getActivityTypeName(type: ActivityType, t: any): string {
+  return t(`types.${type}`);
+}
+
+// Legacy constant for backwards compatibility (deprecated - use getActivityTypeName instead)
+// This will be removed in a future version
 export const ActivityTypeNames: Record<ActivityType, string> = {
   [ActivityType.BUY]: "Buy",
   [ActivityType.SELL]: "Sell",
@@ -168,6 +190,7 @@ export const ActivityTypeNames: Record<ActivityType, string> = {
   [ActivityType.REMOVE_HOLDING]: "Remove Holding",
   [ActivityType.TRANSFER_IN]: "Transfer In",
   [ActivityType.TRANSFER_OUT]: "Transfer Out",
+  [ActivityType.TRANSFER]: "Transfer",
   [ActivityType.FEE]: "Fee",
   [ActivityType.TAX]: "Tax",
   [ActivityType.SPLIT]: "Split",

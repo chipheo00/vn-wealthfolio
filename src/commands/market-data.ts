@@ -271,9 +271,11 @@ export const updateMarketDataProviderSettings = async (payload: {
   }
 };
 
-export const importManualQuotes = async (quotes: QuoteImport[]): Promise<QuoteImport[]> => {
+export const importManualQuotes = async (
+  quotes: QuoteImport[],
+  overwriteExisting: boolean = true,
+): Promise<QuoteImport[]> => {
   try {
-    const overwriteExisting = true;
     switch (getRunEnv()) {
       case RUN_ENV.DESKTOP:
         return invokeTauri("import_quotes_csv", { quotes, overwriteExisting });
