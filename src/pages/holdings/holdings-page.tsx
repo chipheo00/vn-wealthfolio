@@ -307,7 +307,7 @@ export const HoldingsPage = () => {
       <SwipablePage
         views={views}
         heading={t("page.title")}
-        defaultView="holdings"
+        defaultView="analytics"
         isMobile={isMobilePlatform}
         actions={renderActions}
         withPadding={false}
