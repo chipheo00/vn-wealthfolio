@@ -1,6 +1,6 @@
-import { themes as prismThemes } from "prism-react-renderer";
+const { themes: prismThemes } = require("prism-react-renderer");
 
-export default {
+module.exports = {
   title: "WealthVN Documentation",
   tagline: "Internal Developer Documentation for WealthVN",
   favicon: "img/favicon.ico",

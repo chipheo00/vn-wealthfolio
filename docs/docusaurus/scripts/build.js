@@ -41,8 +41,8 @@ async function main() {
     await runCommand("node", [path.join(__dirname, "generate-api-docs.js")]);
 
     console.log("\n3️⃣  Building Docusaurus site...");
-    // Use npx to run docusaurus build directly with legacy provider
-    await runCommand("npx", ["docusaurus", "build", "--", "--no-minify"]);
+    // Use pnpm to run docusaurus build to ensure proper module resolution
+    await runCommand("pnpm", ["docusaurus", "build"]);
 
     console.log("\n✅ Documentation build completed successfully!\n");
     process.exit(0);
