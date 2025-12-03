@@ -1,0 +1,27 @@
+# Build outputs
+build/
+dist/
+.docusaurus/
+
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Generated files (can be regenerated)
+docs/api/typescript/
+docs/api/rust/
+docs/api/addon-sdk/
+docs/api/openapi/

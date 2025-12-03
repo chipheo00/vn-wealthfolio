@@ -1,7 +1,6 @@
 # Addon Development Packages
 
-A comprehensive guide to the packages available for developing WealthVN
-addons.
+A comprehensive guide to the packages available for developing WealthVN addons.
 
 ## Core Packages
 
@@ -399,8 +398,8 @@ export default defineConfig({
 Always use compatible versions:
 
 | SDK Version | WealthVN Version | React Version |
-| ----------- | ------------------- | ------------- |
-| 1.0.0       | 1.0.0+              | ^19.1.1       |
+| ----------- | ---------------- | ------------- |
+| 1.0.0       | 1.0.0+           | ^19.1.1       |
 
 ### Breaking Changes
 
@@ -569,7 +568,7 @@ lsof -i :3002
 lsof -i :3003
 
 # Kill conflicting processes
-kill -9 <PID>
+kill -9 &lt;PID&gt;
 ```
 
 **Hot reload not working:**

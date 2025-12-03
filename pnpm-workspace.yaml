@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - addons/*
+  - docs/docusaurus
 
 ignoredBuiltDependencies:
   - "@tailwindcss/oxide"

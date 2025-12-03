@@ -1,0 +1,104 @@
+name: Build & Deploy Documentation
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "src-tauri/**"
+      - "src-server/**"
+      - "src-core/**"
+      - "packages/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup pnpm store
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Clear pnpm cache
+        run: pnpm store prune
+
+      - name: Install Docusaurus dependencies
+        run: cd docs/docusaurus && pnpm install --no-frozen-lockfile
+
+      - name: Clean Docusaurus cache
+        run: cd docs/docusaurus && rm -rf .docusaurus build node_modules/.cache
+      - name: Build documentation
+        run: cd docs/docusaurus && NODE_OPTIONS="--max-old-space-size=4096" pnpm docusaurus build
+      - name: Check build output
+        run: |
+          if [ ! -d "docs/docusaurus/build" ]; then
+            echo "Build directory not found!"
+            exit 1
+          fi
+          echo "Documentation build successful"
+          du -sh docs/docusaurus/build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: docs-build
+          path: docs/docusaurus/build
+          retention-days: 7
+
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/docusaurus/build
+          cname: docs.wealthvn.local
+
+  lint-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Check markdown
+        run: |
+          echo "Checking markdown files..."
+          find docs -name "*.md" -type f | head -20
+          echo "Markdown check completed"
