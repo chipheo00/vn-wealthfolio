@@ -1,4 +1,5 @@
 import { useFormContext } from "react-hook-form";
+import { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -14,6 +15,8 @@ import { ConfigurationCheckbox, CommonFields, AssetSymbolInput } from "@/pages/a
 import { ActivityTypeSelector, type ActivityType as ActivityTypeUI } from "@/pages/activity/components/activity-type-selector";
 import { CashBalanceWarning } from "@/pages/activity/components/cash-balance-warning";
 import { useTranslation } from "react-i18next";
+import { getLatestQuotes } from "@/commands/market-data";
+import { logger } from "@/adapters";
 
 interface AccountSelectOption {
   value: string;
@@ -22,9 +25,37 @@ interface AccountSelectOption {
 }
 
 export const TradeForm = ({ accounts }: { accounts: AccountSelectOption[] }) => {
-  const { control, watch } = useFormContext();
+  const { control, watch, setValue } = useFormContext();
   const { t } = useTranslation(["activity"]);
   const isManualAsset = watch("assetDataSource") === "MANUAL";
+  const selectedAssetId = watch("assetId");
+
+  // Auto-populate unit price from latest quote when asset is selected
+  useEffect(() => {
+    const fetchAndFillPrice = async () => {
+      if (!selectedAssetId || isManualAsset) {
+        return;
+      }
+
+      logger.info(`TradeForm - Fetching quote for selected asset: ${selectedAssetId}`);
+
+      try {
+        const quotes = await getLatestQuotes([selectedAssetId]);
+        const quote = quotes[selectedAssetId];
+
+        if (quote) {
+          logger.info(`Setting unit price for ${selectedAssetId} to ${quote.close}`);
+          setValue("unitPrice", quote.close);
+        } else {
+          logger.info(`No quote found for selected asset: ${selectedAssetId}`);
+        }
+      } catch (error) {
+        logger.info(`Failed to fetch quote for ${selectedAssetId}`);
+      }
+    };
+
+    fetchAndFillPrice();
+  }, [selectedAssetId, isManualAsset, setValue]);
 
   const tradeTypes: ActivityTypeUI[] = [
     {
@@ -97,10 +128,10 @@ export const TradeForm = ({ accounts }: { accounts: AccountSelectOption[] }) => 
                 </FormItem>
               )}
             />
-          </div>
-          <CommonFields accounts={accounts} />
-        </CardContent>
-      </Card>
+            </div>
+            <CommonFields accounts={accounts} />
+            </CardContent>
+            </Card>
     </div>
   );
 };

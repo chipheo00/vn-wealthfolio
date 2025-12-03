@@ -1,6 +1,6 @@
 [package]
 name = "wealthvn_core"
-version = "1.0.0"
+version = "1.0.1"
 description = "A Portfolio Tracker for Vietnamese Market"
 authors = ["Chipheo00 - CFPM Inc. WealthVN Team"]
 license = "AGPL-3.0"

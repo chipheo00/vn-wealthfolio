@@ -32,6 +32,7 @@ export const QueryKeys = {
   ASSET_DATA: "asset_data",
   ASSETS: "assets",
   LATEST_QUOTES: "latest_quotes",
+  LATEST_QUOTES_FOR_HOLDINGS: "latest_quotes_for_holdings",
   IMPORT_MAPPING: "import_mapping",
 
   PERFORMANCE_SUMMARY: "performanceSummary",
