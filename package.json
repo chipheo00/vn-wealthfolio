@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "dev:web": "node scripts/dev-web.mjs",
-    "build": "pnpm run build:types && tsc && vite build && pnpm -r build && cd docs/docusaurus && pnpm build",
+    "build": "pnpm run build:types && tsc && vite build && pnpm -r build",
     "build:types": "pnpm -r run build:types",
     "preview": "vite preview",
     "tauri": "tauri",
