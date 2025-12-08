@@ -13,6 +13,7 @@ interface ExtendedSettingsContextType extends SettingsContextType {
       Pick<
         Settings,
         | "theme"
+        | "themeColor"
         | "font"
         | "baseCurrency"
         | "onboardingCompleted"
@@ -46,6 +47,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       Pick<
         Settings,
         | "theme"
+        | "themeColor"
         | "font"
         | "baseCurrency"
         | "onboardingCompleted"
@@ -155,6 +157,13 @@ const applySettingsToDocument = (newSettings: Settings) => {
   // Font classes
   document.body.classList.remove("font-mono", "font-sans", "font-serif");
   document.body.classList.add(newSettings.font);
+
+  // Apply theme color
+  if (newSettings.themeColor) {
+    document.body.setAttribute("data-theme", newSettings.themeColor);
+  } else {
+    document.body.removeAttribute("data-theme");
+  }
 
   // Always clean up previous listeners before applying a new theme mode
   cleanupSystemThemeListeners();

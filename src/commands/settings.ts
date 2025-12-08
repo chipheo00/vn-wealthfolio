@@ -18,6 +18,7 @@ export const getSettings = async (): Promise<Settings> => {
     // Return default settings instead of empty object
     return {
       theme: "dark",
+      themeColor: "default",
       font: "font-mono",
       baseCurrency: "",
       language: "en",

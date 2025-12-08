@@ -47,6 +47,7 @@ impl SettingsRepositoryTrait for SettingsRepository {
         for (key, value) in all_settings {
             match key.as_str() {
                 "theme" => settings.theme = value,
+                "theme_color" => settings.theme_color = value,
                 "font" => settings.font = value,
                 "base_currency" => settings.base_currency = value,
                 "instance_id" => settings.instance_id = value,
@@ -89,6 +90,15 @@ impl SettingsRepositoryTrait for SettingsRepository {
                         .values(&AppSetting {
                             setting_key: "theme".to_string(),
                             setting_value: theme.clone(),
+                        })
+                        .execute(conn)?;
+                }
+
+                if let Some(ref theme_color) = settings.theme_color {
+                    diesel::replace_into(app_settings)
+                        .values(&AppSetting {
+                            setting_key: "theme_color".to_string(),
+                            setting_value: theme_color.clone(),
                         })
                         .execute(conn)?;
                 }

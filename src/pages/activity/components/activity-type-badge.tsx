@@ -17,40 +17,42 @@ interface ActivityTypeBadgeProps {
 
 // Design update: Bigger icons, No borders, Friendly palette
 function getActivityColorClass(type: ActivityType) {
+  const bgClass = "bg-[color-mix(in_srgb,var(--theme-brand),transparent_85%)]";
+
   switch (type) {
-    // Primary/Positive Actions -> Main Brand Green/Emerald
+    // Primary/Positive Actions -> Emerald Text
     case ActivityType.BUY:
     case ActivityType.DEPOSIT:
     case ActivityType.ADD_HOLDING:
-      return "text-emerald-600 bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-500/10";
+      return `text-emerald-600 dark:text-emerald-400 ${bgClass}`;
 
-    // Income/Gains -> Lime/Teal (Vibrant but distinct from Buy)
+    // Income/Gains -> Teal Text
     case ActivityType.DIVIDEND:
     case ActivityType.INTEREST:
     case ActivityType.TRANSFER_IN:
-      return "text-teal-600 bg-teal-500/15 dark:text-teal-400 dark:bg-teal-500/10";
+      return `text-teal-600 dark:text-teal-400 ${bgClass}`;
 
-    // Selling/Spending -> Orange (Warm, not alarming red)
+    // Selling/Spending -> Orange Text
     case ActivityType.SELL:
     case ActivityType.WITHDRAWAL:
     case ActivityType.REMOVE_HOLDING:
-      return "text-orange-600 bg-orange-500/15 dark:text-orange-400 dark:bg-orange-500/10";
+      return `text-orange-600 dark:text-orange-400 ${bgClass}`;
 
-    // Transfers/Movement -> Blue/Sky (Neutral flow)
+    // Transfers/Movement -> Sky Text
     case ActivityType.TRANSFER:
     case ActivityType.TRANSFER_OUT:
-      return "text-sky-600 bg-sky-500/15 dark:text-sky-400 dark:bg-sky-500/10";
+      return `text-sky-600 dark:text-sky-400 ${bgClass}`;
 
-    // Administrative/Fees -> Slate/Violet (Subtle)
+    // Administrative/Fees -> Violet Text
     case ActivityType.FEE:
     case ActivityType.TAX:
-      return "text-violet-600 bg-violet-500/15 dark:text-violet-400 dark:bg-violet-500/10";
+      return `text-violet-600 dark:text-violet-400 ${bgClass}`;
 
     case ActivityType.SPLIT:
-      return "text-indigo-600 bg-indigo-500/15 dark:text-indigo-400 dark:bg-indigo-500/10";
+      return `text-indigo-600 dark:text-indigo-400 ${bgClass}`;
 
     default:
-      return "text-slate-600 bg-slate-500/15 dark:text-slate-400 dark:bg-slate-500/10";
+      return `text-slate-600 dark:text-slate-400 ${bgClass}`;
   }
 }
 

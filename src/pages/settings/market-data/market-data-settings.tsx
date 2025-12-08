@@ -17,17 +17,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  useRecalculatePortfolioMutation,
-  useUpdatePortfolioMutation,
+    useRecalculatePortfolioMutation,
+    useUpdatePortfolioMutation,
 } from "@/hooks/use-calculate-portfolio";
 import { QueryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { ActionConfirm } from "@wealthvn/ui";
 import {
-  useDeleteApiKey,
-  useMarketDataProviderSettings,
-  useSetApiKey,
-  useUpdateMarketDataProviderSettings,
+    useDeleteApiKey,
+    useMarketDataProviderSettings,
+    useSetApiKey,
+    useUpdateMarketDataProviderSettings,
 } from "./use-market-data-settings";
 
 const useApiKeyStatus = (providerId: string, isOpen: boolean) => {
@@ -182,7 +182,6 @@ function ProviderSettings({
                 id={`${provider.id}-enabled`}
                 checked={provider.enabled}
                 onCheckedChange={(checked) => onUpdate({ enabled: checked })}
-                className="data-[state=checked]:bg-green-600"
               />
             </div>
           </div>

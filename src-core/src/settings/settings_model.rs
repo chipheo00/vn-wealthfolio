@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub theme: String,
+    pub theme_color: String,
     pub font: String,
     pub base_currency: String,
     pub instance_id: String,
@@ -21,6 +22,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             theme: "dark".to_string(),
+            theme_color: "default".to_string(),
             font: "font-mono".to_string(),
             base_currency: "".to_string(),
             instance_id: "".to_string(),
@@ -38,6 +40,7 @@ impl Default for Settings {
 #[serde(rename_all = "camelCase")]
 pub struct SettingsUpdate {
     pub theme: Option<String>,
+    pub theme_color: Option<String>,
     pub font: Option<String>,
     pub base_currency: Option<String>,
     pub onboarding_completed: Option<bool>,

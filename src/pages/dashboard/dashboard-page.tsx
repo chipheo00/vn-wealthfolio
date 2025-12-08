@@ -11,9 +11,8 @@ import { calculatePerformanceMetrics } from "@/lib/utils";
 import { PortfolioUpdateTrigger } from "@/pages/dashboard/portfolio-update-trigger";
 import { GainAmount, GainPercent, IntervalSelector, Page } from "@wealthvn/ui";
 import { subMonths } from "date-fns";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
 import { AccountsSummary } from "./accounts-summary";
 import Balance from "./balance";
 import SavingGoals from "./goals";
@@ -195,7 +194,7 @@ export default function DashboardPage() {
           ) : null}
         </div>
 
-        <div className="from-success/30 via-success/15 to-success/10 grow bg-linear-to-t px-4 pt-12 md:px-6 md:pt-12 lg:px-10 lg:pt-20">
+        <div className="from-[var(--theme-brand)]/30 via-[var(--theme-brand)]/15 to-[var(--theme-brand)]/10 grow bg-linear-to-t px-4 pt-12 md:px-6 md:pt-12 lg:px-10 lg:pt-20">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-20">
             <div className="md:col-span-2">
               <AccountsSummary />
