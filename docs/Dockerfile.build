@@ -13,7 +13,7 @@ COPY docs ./docs
 
 # Install docs dependencies
 WORKDIR /app/docs
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Build documentation
 WORKDIR /app/docs
