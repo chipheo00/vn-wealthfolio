@@ -1,0 +1,31 @@
+# Multi-stage build for Wealthfolio Documentation CI
+# Optimized for GitHub Actions workflow
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@8
+
+# Copy workspace files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+
+# Copy source directories needed for API generation
+COPY src ./src
+COPY src-tauri ./src-tauri
+COPY src-server ./src-server
+COPY src-core ./src-core
+COPY packages ./packages
+COPY docs ./docs
+
+# Install all dependencies (monorepo + docs)
+RUN pnpm install --frozen-lockfile
+
+# Build documentation
+WORKDIR /app/docs/docusaurus
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm build
+
+# Output stage - only the build artifacts
+FROM scratch AS output
+COPY --from=builder /app/docs/docusaurus/build /build

@@ -27,29 +27,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+      - name: Build documentation with Docker
+        run: |
+          docker build \
+            -f docs/docusaurus/Dockerfile.build \
+            -t docs-builder:latest \
+            --progress=plain \
+            .
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Setup pnpm store
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Clean Docusaurus cache
-        run: cd docs/docusaurus && rm -rf .docusaurus build node_modules/.cache
-      - name: Build documentation
-        run: cd docs/docusaurus && NODE_OPTIONS="--max-old-space-size=4096" pnpm build
+      - name: Extract build artifacts
+        run: |
+          mkdir -p docs/docusaurus/build
+          docker run --rm \
+            -v "$(pwd)/docs/docusaurus/build:/output" \
+            docs-builder:latest \
+            cp -r /build/* /output/
+        
       - name: Check build output
         run: |
           if [ ! -d "docs/docusaurus/build" ]; then
