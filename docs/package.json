@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
+  "description": "Standalone Docusaurus documentation service for WealthVN",
   "scripts": {
+    "dev": "docusaurus start --port 3001",
     "start": "docusaurus start --port 3001",
     "build": "node scripts/build.js",
     "serve": "docusaurus serve",
     "sync": "node scripts/sync-docs.js",
     "sync:wiki": "node scripts/sync-wiki.js",
-    "generate-api": "node scripts/generate-api-docs.js"
+    "generate-api": "node scripts/generate-api-docs.js",
+    "clean": "rm -rf build .docusaurus"
   },
   "dependencies": {
     "@docusaurus/core": "^3.9.2",

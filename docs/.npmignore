@@ -1,0 +1,23 @@
+# Build outputs
+build/
+.docusaurus/
+node_modules/
+
+# Development
+.DS_Store
+*.log
+.env
+.env.local
+
+# Git
+.git
+.gitignore
+.github/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+dist/
+
+# Test files
+**/*.test.*
+**/*.spec.*

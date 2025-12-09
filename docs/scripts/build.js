@@ -41,8 +41,8 @@ async function main() {
     await runCommand("node", [path.join(__dirname, "generate-api-docs.js")]);
 
     console.log("\n3️⃣  Building Docusaurus site...");
-    // Use pnpm exec to resolve docusaurus from root dependencies
-    await runCommand("pnpm", ["exec", "docusaurus", "build"]);
+    // Use local docusaurus from node_modules
+    await runCommand("./node_modules/.bin/docusaurus", ["build"]);
 
     console.log("\n✅ Documentation build completed successfully!\n");
     process.exit(0);

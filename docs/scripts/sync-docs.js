@@ -10,9 +10,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '../../..');
-const sourceDir = path.join(rootDir, 'docs');
-const targetDir = path.join(__dirname, '../docs');
+const docsDir = path.resolve(__dirname, '..');
+const sourceDir = path.resolve(docsDir, '../docs'); // Root docs folder
+const targetDir = path.join(docsDir, 'docs'); // Docusaurus docs folder
 
 // Mapping of source files to destination
 const syncMappings = [

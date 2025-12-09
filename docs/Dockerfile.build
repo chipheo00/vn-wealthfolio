@@ -22,8 +22,9 @@ COPY docs ./docs
 # Install all dependencies (monorepo + docs)
 RUN pnpm install --frozen-lockfile
 
-# Build documentation
+# Install docs-specific dependencies
 WORKDIR /app/docs
+RUN pnpm install --frozen-lockfile
 
 # Step 1: Sync documentation content
 RUN node scripts/sync-docs.js

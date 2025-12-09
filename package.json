@@ -31,9 +31,7 @@
     "publish:ui": "cd packages/ui && npm publish --access public",
     "publish:addon-dev-tools": "cd packages/addon-dev-tools && npm publish --access public",
     "addon:create": "cd packages/addon-dev-tools && node cli.js create",
-    "addon:dev": "cd packages/addon-dev-tools && node dev-server.js",
-    "docs:dev": "cd docs/docusaurus && pnpm start",
-    "docs:serve": "cd docs/docusaurus && pnpm serve"
+    "addon:dev": "cd packages/addon-dev-tools && node dev-server.js"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.6",
