@@ -23,9 +23,9 @@ COPY docs ./docs
 RUN pnpm install --frozen-lockfile
 
 # Build documentation
-WORKDIR /app/docs/docusaurus
+WORKDIR /app/docs
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm build
 
 # Output stage - only the build artifacts
 FROM scratch AS output
-COPY --from=builder /app/docs/docusaurus/build /build
+COPY --from=builder /app/docs/build /build

@@ -30,34 +30,34 @@ jobs:
       - name: Build documentation with Docker
         run: |
           docker build \
-            -f docs/docusaurus/Dockerfile.build \
+            -f docs/Dockerfile.build \
             -t docs-builder:latest \
             --progress=plain \
             .
 
       - name: Extract build artifacts
         run: |
-          mkdir -p docs/docusaurus/build
+          mkdir -p docs/build
           docker run --rm \
-            -v "$(pwd)/docs/docusaurus/build:/output" \
+            -v "$(pwd)/docs/build:/output" \
             docs-builder:latest \
             cp -r /build/* /output/
         
       - name: Check build output
         run: |
-          if [ ! -d "docs/docusaurus/build" ]; then
+          if [ ! -d "docs/build" ]; then
             echo "Build directory not found!"
             exit 1
           fi
           echo "Documentation build successful"
-          du -sh docs/docusaurus/build
+          du -sh docs/build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: docs-build
-          path: docs/docusaurus/build
+          path: docs/build
           retention-days: 7
 
       - name: Deploy to GitHub Pages
@@ -65,7 +65,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/docusaurus/build
+          publish_dir: ./docs/build
 
   lint-docs:
     runs-on: ubuntu-latest

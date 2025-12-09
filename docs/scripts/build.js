@@ -41,8 +41,8 @@ async function main() {
     await runCommand("node", [path.join(__dirname, "generate-api-docs.js")]);
 
     console.log("\n3️⃣  Building Docusaurus site...");
-    // Call docusaurus build directly from root node_modules
-    await runCommand("node", ["../../node_modules/.bin/docusaurus", "build"]);
+    // Call docusaurus build directly from monorepo root node_modules
+    await runCommand("node", ["../node_modules/.bin/docusaurus", "build"]);
 
     console.log("\n✅ Documentation build completed successfully!\n");
     process.exit(0);
