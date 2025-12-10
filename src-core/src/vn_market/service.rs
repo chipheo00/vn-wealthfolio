@@ -21,6 +21,11 @@ use crate::vn_market::errors::VnMarketError;
 use crate::vn_market::models::gold::is_gold_symbol;
 use crate::vn_market::models::stock::map_index_symbol;
 
+/// Round a decimal to 2 decimal places
+fn round_price(price: Decimal) -> Decimal {
+    price.round_dp(2)
+}
+
 type DbPool = Pool<ConnectionManager<SqliteConnection>>;
 
 /// VN Market Service providing unified access to Vietnamese market data
@@ -44,6 +49,18 @@ pub struct VnMarketService {
 }
 
 impl VnMarketService {
+    /// Round all price fields in a quote to 2 decimal places
+    fn round_quote(mut quote: CachedQuote) -> CachedQuote {
+        quote.open = round_price(quote.open);
+        quote.high = round_price(quote.high);
+        quote.low = round_price(quote.low);
+        quote.close = round_price(quote.close);
+        quote.nav = quote.nav.map(round_price);
+        quote.buy_price = quote.buy_price.map(round_price);
+        quote.sell_price = quote.sell_price.map(round_price);
+        quote
+    }
+
     /// Create a new VN Market Service without historical cache
     pub fn new() -> Self {
         Self {
@@ -143,7 +160,7 @@ impl VnMarketService {
 
         // Check cache first
         if let Some(cached) = self.quote_cache.get(symbol, asset_type).await {
-            return Ok(cached);
+            return Ok(Self::round_quote(cached));
         }
 
         // Fetch from appropriate client
@@ -153,10 +170,13 @@ impl VnMarketService {
             VnAssetType::Gold => self.fetch_gold_quote(symbol).await?,
         };
 
-        // Store in cache
-        self.quote_cache.set(quote.clone()).await;
+        // Round prices to 2 decimal places
+        let rounded_quote = Self::round_quote(quote.clone());
 
-        Ok(quote)
+        // Store original in cache (for consistency with other asset types)
+        self.quote_cache.set(quote).await;
+
+        Ok(rounded_quote)
     }
 
     /// Get historical quotes for a symbol

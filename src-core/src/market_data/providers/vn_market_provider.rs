@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::SqliteConnection;
+use rust_decimal::Decimal;
 use tokio::sync::RwLock;
 
 use crate::market_data::market_data_errors::MarketDataError;
@@ -20,6 +21,11 @@ use crate::vn_market::{
 };
 
 type DbPool = Pool<ConnectionManager<SqliteConnection>>;
+
+/// Round a decimal to 2 decimal places
+fn round_price(price: Decimal) -> Decimal {
+    price.round_dp(2)
+}
 
 /// Vietnamese market provider using native Rust clients
 pub struct VnMarketProvider {
@@ -94,11 +100,11 @@ impl VnMarketProvider {
                 id: format!("hist_{}_{}", symbol, record.date),
                 symbol: symbol.to_string(),
                 timestamp: record.date.and_time(chrono::NaiveTime::MIN).and_utc(),
-                open: record.open,
-                high: record.high,
-                low: record.low,
-                close: record.close,
-                adjclose: record.close, // VN market doesn't have adjusted close
+                open: round_price(record.open),
+                high: round_price(record.high),
+                low: round_price(record.low),
+                close: round_price(record.close),
+                adjclose: round_price(record.close), // VN market doesn't have adjusted close
                 volume: record.volume,
                 currency: record.currency,
                 data_source: DataSource::VnMarket,
@@ -129,11 +135,11 @@ impl MarketDataProvider for VnMarketProvider {
             id: format!("quote_{}", symbol),
             symbol: symbol.to_string(),
             timestamp: cached_quote.date.and_time(chrono::NaiveTime::MIN).and_utc(),
-            open: cached_quote.open,
-            high: cached_quote.high,
-            low: cached_quote.low,
-            close: cached_quote.close,
-            adjclose: cached_quote.close,
+            open: round_price(cached_quote.open),
+            high: round_price(cached_quote.high),
+            low: round_price(cached_quote.low),
+            close: round_price(cached_quote.close),
+            adjclose: round_price(cached_quote.close),
             volume: cached_quote.volume,
             currency: cached_quote.currency,
             data_source: DataSource::VnMarket,
