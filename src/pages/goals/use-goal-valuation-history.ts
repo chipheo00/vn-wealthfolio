@@ -10,6 +10,9 @@ import {
     eachMonthOfInterval,
     eachWeekOfInterval,
     eachYearOfInterval,
+    endOfMonth,
+    endOfWeek,
+    endOfYear,
     format,
     isAfter,
     isBefore,
@@ -20,7 +23,7 @@ import {
     subMonths,
     subWeeks,
     subYears,
-} from "date-fns";
+  } from "date-fns";
 import { useMemo } from "react";
 
 export type TimePeriodOption = "weeks" | "months" | "years" | "all";
@@ -107,10 +110,9 @@ interface UseGoalValuationHistoryResult {
 }
 
 /**
- * Calculate projected value using compound interest formula with regular contributions
- * FV = PV × (1 + r)^n + PMT × [((1 + r)^n - 1) / r]
+ * Calculate projected value based on regular contributions only
+ * FV = PMT × [((1 + r)^n - 1) / r]
  *
- * @param startValue - Initial value (PV)
  * @param monthlyInvestment - Monthly contribution (PMT)
  * @param annualReturnRate - Annual return rate as percentage (e.g., 7 for 7%)
  * @param monthsFromStart - Number of months from start date
@@ -121,34 +123,38 @@ function calculateProjectedValue(
   annualReturnRate: number,
   monthsFromStart: number,
 ): number {
-  if (monthsFromStart <= 0) return startValue;
+  if (monthsFromStart <= 0) return 0;
 
   const monthlyRate = annualReturnRate / 100 / 12;
 
   if (monthlyRate === 0) {
     // No return rate, just accumulate contributions
-    return startValue + monthlyInvestment * monthsFromStart;
+    return monthlyInvestment * monthsFromStart;
   }
 
-  // FV = PV × (1 + r)^n + PMT × [((1 + r)^n - 1) / r]
+  // FV = PMT × [((1 + r)^n - 1) / r]
   const compoundFactor = Math.pow(1 + monthlyRate, monthsFromStart);
-  const futurePV = startValue * compoundFactor;
-  const futureContributions = monthlyInvestment * ((compoundFactor - 1) / monthlyRate);
-
-  return futurePV + futureContributions;
+  return monthlyInvestment * ((compoundFactor - 1) / monthlyRate);
 }
 
 /**
- * Get the number of months between two dates
+ * Get the number of months (including fractional) between two dates
  */
 function getMonthsDiff(startDate: Date, endDate: Date): number {
   const yearDiff = endDate.getFullYear() - startDate.getFullYear();
   const monthDiff = endDate.getMonth() - startDate.getMonth();
-  return yearDiff * 12 + monthDiff;
+  const wholMonths = yearDiff * 12 + monthDiff;
+  
+  // Add fractional month based on days
+  const daysDiff = endDate.getDate() - startDate.getDate();
+  const fractionalMonth = daysDiff / 30; // Use 30 as average days per month
+  
+  return wholMonths + fractionalMonth;
 }
 
 /**
  * Generate date intervals based on the selected time period
+ * Returns the END of each period instead of the start
  */
 function generateDateIntervals(startDate: Date, endDate: Date, period: TimePeriodOption): Date[] {
   const today = startOfDay(new Date());
@@ -157,17 +163,27 @@ function generateDateIntervals(startDate: Date, endDate: Date, period: TimePerio
   const effectiveEndDate = period === "all" ? endDate : (isAfter(endDate, today) ? endDate : today);
 
   switch (period) {
-    case "weeks":
-      return eachWeekOfInterval({ start: startDate, end: effectiveEndDate });
-    case "months":
-      return eachMonthOfInterval({ start: startDate, end: effectiveEndDate });
-    case "years":
-      return eachYearOfInterval({ start: startDate, end: effectiveEndDate });
-    case "all":
+    case "weeks": {
+      const weeks = eachWeekOfInterval({ start: startDate, end: effectiveEndDate });
+      return weeks.map(week => endOfWeek(week));
+    }
+    case "months": {
+      const months = eachMonthOfInterval({ start: startDate, end: effectiveEndDate });
+      return months.map(month => endOfMonth(month));
+    }
+    case "years": {
+      const years = eachYearOfInterval({ start: startDate, end: effectiveEndDate });
+      return years.map(year => endOfYear(year));
+    }
+    case "all": {
       // "All time" view uses yearly intervals
-      return eachYearOfInterval({ start: startDate, end: effectiveEndDate });
-    default:
-      return eachMonthOfInterval({ start: startDate, end: effectiveEndDate });
+      const years = eachYearOfInterval({ start: startDate, end: effectiveEndDate });
+      return years.map(year => endOfYear(year));
+    }
+    default: {
+      const months = eachMonthOfInterval({ start: startDate, end: effectiveEndDate });
+      return months.map(month => endOfMonth(month));
+    }
   }
 }
 
@@ -348,7 +364,22 @@ export function useGoalValuationHistory(
     );
 
     // Generate date intervals from goal start date (for projection) to end date
-    const dateIntervals = generateDateIntervals(displayStart, displayEnd, period);
+    let dateIntervals = generateDateIntervals(displayStart, displayEnd, period);
+
+    // For "all" view, always add the exact due date as the last data point so we show the final projected value
+    if (period === "all" && dateIntervals.length > 0) {
+      const lastInterval = dateIntervals[dateIntervals.length - 1];
+      // Only add due date if it's not already represented (check if they're in the same year for yearly view)
+      const lastIntervalYear = format(lastInterval, "yyyy");
+      const dueDateYear = format(goalDueDate, "yyyy");
+      if (lastIntervalYear !== dueDateYear && !isAfter(goalDueDate, displayEnd)) {
+        dateIntervals = [...dateIntervals, goalDueDate];
+      }
+    }
+
+    // Remove duplicate dates
+    const uniqueDates = Array.from(new Set(dateIntervals.map(d => d.getTime()))).map(t => new Date(t));
+    dateIntervals = uniqueDates.sort((a, b) => a.getTime() - b.getTime());
 
     // Get allocation percentages for this goal
     const allocationMap = new Map<string, number>();
@@ -399,9 +430,9 @@ export function useGoalValuationHistory(
 
     // For current period in years/all view, use latest value if available
     if ((period === "years" || period === "all") && latestActualValue !== null) {
-      const currentYearKey = format(startOfYear(today), "yyyy-MM-dd");
+      const currentYearKey = format(endOfYear(today), "yyyy-MM-dd");
       // Find valid date key in aggregatedActuals that represents the current year
-      // Since generateDateIntervals returns start of years, it should match
+      // Since generateDateIntervals now returns end of years, use endOfYear for consistency
       const existingValue = aggregatedActuals.get(currentYearKey);
       if (!existingValue || latestActualValue > existingValue) {
         aggregatedActuals.set(currentYearKey, latestActualValue);
@@ -453,7 +484,7 @@ export function useGoalValuationHistory(
         isInPast && isAfterGoalStart ? (aggregatedActuals.get(dateStr) ?? null) : null;
 
       // Special handling for current period to show latest known value
-      if (actual === null && latestActualValue !== null && isInPast) {
+      if (actual === null && latestActualValue !== null) {
           const isSamePeriod =
             (period === "weeks" && format(date, "yyyy-ww") === format(today, "yyyy-ww")) ||
             (period === "months" && format(date, "yyyy-MM") === format(today, "yyyy-MM")) ||

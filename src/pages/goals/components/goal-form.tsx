@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import * as z from "zod";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -54,6 +55,53 @@ export function GoalForm({ defaultValues, onSuccess = () => undefined }: GoalFor
       isAchieved: defaultValues?.isAchieved || false,
     },
   });
+
+  // Auto-calculate monthly investment when target amount, return rate, or dates change
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      const { targetAmount, targetReturnRate, startDate, dueDate } = values;
+
+      if (
+        !targetAmount ||
+        targetReturnRate === undefined ||
+        !startDate ||
+        !dueDate
+      ) {
+        return;
+      }
+
+      const start = startDate instanceof Date ? startDate : new Date(startDate);
+      const end = dueDate instanceof Date ? dueDate : new Date(dueDate);
+
+      // Calculate months between dates
+      const monthsDiff =
+        (end.getFullYear() - start.getFullYear()) * 12 +
+        (end.getMonth() - start.getMonth());
+
+      if (monthsDiff <= 0) {
+        return;
+      }
+
+      // Calculate monthly investment
+      // PMT = Target / [((1 + r)^n - 1) / r]
+      const monthlyRate = targetReturnRate / 100 / 12;
+      let monthlyInvestment: number;
+
+      if (monthlyRate === 0) {
+        monthlyInvestment = targetAmount / monthsDiff;
+      } else {
+        const compoundFactor = Math.pow(1 + monthlyRate, monthsDiff);
+        monthlyInvestment = targetAmount / ((compoundFactor - 1) / monthlyRate);
+      }
+
+      // Format to 2 decimal places
+      monthlyInvestment = Math.round(monthlyInvestment * 100) / 100;
+
+      form.setValue("monthlyInvestment", monthlyInvestment, { shouldDirty: true });
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   function onSubmit(data: NewGoal) {
     const { startDate, dueDate, ...rest } = data;
@@ -176,27 +224,6 @@ export function GoalForm({ defaultValues, onSuccess = () => undefined }: GoalFor
             </div>
 
             <div className="bg-muted/50 border-border space-y-4 rounded-lg border p-4">
-              {/* Monthly Investment (DCA) */}
-              <FormField
-                control={form.control}
-                name="monthlyInvestment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("form.fields.monthlyInvestment.label")}</FormLabel>
-                    <FormControl>
-                      <MoneyInput
-                        placeholder={t("form.fields.monthlyInvestment.placeholder")}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t("form.fields.monthlyInvestment.description")}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               {/* Target Return Rate */}
               <FormField
                 control={form.control}
@@ -220,15 +247,36 @@ export function GoalForm({ defaultValues, onSuccess = () => undefined }: GoalFor
                           onBlur={field.onBlur}
                           name={field.name}
                           ref={field.ref}
-                          className="pr-16"
+                          className="no-spinner pr-16"
                         />
-                        <span className="text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 text-sm">
+                        <span className="text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
                           {t("form.fields.targetReturnRate.suffix")}
                         </span>
                       </div>
                     </FormControl>
                     <FormDescription>
                       {t("form.fields.targetReturnRate.hint")}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Monthly Investment (DCA) - Auto-calculated */}
+              <FormField
+                control={form.control}
+                name="monthlyInvestment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("form.fields.monthlyInvestment.label")}</FormLabel>
+                    <FormControl>
+                      <MoneyInput
+                        placeholder={t("form.fields.monthlyInvestment.placeholder")}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t("form.fields.monthlyInvestment.description")}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

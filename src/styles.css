@@ -979,4 +979,15 @@
   .scroll-touch { -webkit-overflow-scrolling: touch; }
   .touch-manipulation { touch-action: manipulation; }
   .min-h-dvh { min-height: 100dvh; }
+
+  /* Hide number input spinners */
+  .no-spinner::-webkit-outer-spin-button,
+  .no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .no-spinner[type='number'] {
+    -moz-appearance: textfield;
+  }
 }
