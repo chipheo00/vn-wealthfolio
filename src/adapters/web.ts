@@ -37,6 +37,9 @@ const COMMANDS: CommandMap = {
   delete_goal: { method: "DELETE", path: "/goals" },
   update_goal_allocations: { method: "POST", path: "/goals/allocations" },
   load_goals_allocations: { method: "GET", path: "/goals/allocations" },
+  get_goal_progress: { method: "GET", path: "/goals/{id}/progress" },
+  get_goal_allocations_on_date: { method: "GET", path: "/goals/{id}/allocations-on-date" },
+  validate_allocation_conflict: { method: "POST", path: "/goals/validate-allocation-conflict" },
   // FX
   get_latest_exchange_rates: { method: "GET", path: "/exchange-rates/latest" },
   update_exchange_rate: { method: "PUT", path: "/exchange-rates" },
@@ -230,6 +233,27 @@ export const invokeWeb = async <T>(
     case "delete_goal": {
       const { goalId } = payload as { goalId: string };
       url += `/${encodeURIComponent(goalId)}`;
+      break;
+    }
+    case "get_goal_progress": {
+      const { goalId, date } = payload as { goalId: string; date?: string };
+      url += `/${encodeURIComponent(goalId)}/progress`;
+      if (date) {
+        url += `?date=${encodeURIComponent(date)}`;
+      }
+      break;
+    }
+    case "get_goal_allocations_on_date": {
+      const { goalId, date } = payload as { goalId: string; date?: string };
+      url += `/${encodeURIComponent(goalId)}/allocations-on-date`;
+      if (date) {
+        url += `?date=${encodeURIComponent(date)}`;
+      }
+      break;
+    }
+    case "validate_allocation_conflict": {
+      const { request } = payload as { request: Record<string, unknown> };
+      body = JSON.stringify(request);
       break;
     }
     case "create_goal": {

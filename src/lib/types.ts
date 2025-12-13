@@ -376,6 +376,8 @@ export interface GoalAllocation {
   goalId: string;
   accountId: string;
   percentAllocation: number;
+  startDate?: string; // YYYY-MM-DD format
+  endDate?: string;   // YYYY-MM-DD format
 }
 
 export interface GoalProgress {

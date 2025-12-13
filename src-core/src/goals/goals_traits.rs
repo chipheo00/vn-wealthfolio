@@ -11,6 +11,11 @@ pub trait GoalRepositoryTrait: Send + Sync {
     async fn delete_goal(&self, goal_id_to_delete: String) -> Result<usize>;
     fn load_allocations_for_non_achieved_goals(&self) -> Result<Vec<GoalsAllocation>>;
     async fn upsert_goal_allocations(&self, allocations: Vec<GoalsAllocation>) -> Result<usize>;
+    fn get_allocations_for_account_on_date(
+        &self,
+        account_id: &str,
+        query_date: &str,
+    ) -> Result<Vec<GoalsAllocation>>;
 }
 
 /// Trait for goal service operations

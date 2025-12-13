@@ -28,7 +28,9 @@ impl GoalRepository {
 
     pub fn load_goals_impl(&self) -> Result<Vec<Goal>> {
         let mut conn = get_connection(&self.pool)?;
-        Ok(goals.load::<Goal>(&mut conn)?)
+        Ok(goals
+            .select(Goal::as_select())
+            .load::<Goal>(&mut conn)?)
     }
 
     pub fn load_allocations_for_non_achieved_goals_impl(&self) -> Result<Vec<GoalsAllocation>> {
@@ -36,12 +38,24 @@ impl GoalRepository {
         Ok(goals_allocation::table
             .inner_join(goals::table.on(goals::id.eq(goals_allocation::goal_id)))
             .filter(goals::is_achieved.eq(false))
-            .select((
-                goals_allocation::id,
-                goals_allocation::goal_id,
-                goals_allocation::account_id,
-                goals_allocation::percent_allocation,
-            ))
+            .select(GoalsAllocation::as_select())
+            .load::<GoalsAllocation>(&mut conn)?)
+    }
+
+    pub fn get_allocations_for_account_on_date(
+        &self,
+        account_id: &str,
+        query_date: &str,
+    ) -> Result<Vec<GoalsAllocation>> {
+        let mut conn = get_connection(&self.pool)?;
+        let query_date = query_date.to_string();
+        let account_id = account_id.to_string();
+
+        Ok(goals_allocation::table
+            .filter(goals_allocation::account_id.eq(account_id))
+            .filter(goals_allocation::start_date.le(&query_date))
+            .filter(goals_allocation::end_date.ge(&query_date))
+            .select(GoalsAllocation::as_select())
             .load::<GoalsAllocation>(&mut conn)?)
     }
 }
@@ -90,6 +104,14 @@ impl GoalRepositoryTrait for GoalRepository {
 
     fn load_allocations_for_non_achieved_goals(&self) -> Result<Vec<GoalsAllocation>> {
         self.load_allocations_for_non_achieved_goals_impl()
+    }
+
+    fn get_allocations_for_account_on_date(
+        &self,
+        account_id: &str,
+        query_date: &str,
+    ) -> Result<Vec<GoalsAllocation>> {
+        self.get_allocations_for_account_on_date(account_id, query_date)
     }
 
     async fn upsert_goal_allocations(&self, allocations: Vec<GoalsAllocation>) -> Result<usize> {

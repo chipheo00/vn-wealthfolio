@@ -31,13 +31,27 @@ export function calculateGoalProgress(
   // Create a sorted copy of goals to avoid mutating the original array
   const sortedGoals = [...goals].sort((a, b) => a.targetAmount - b.targetAmount);
 
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
   // Calculate progress for each goal
   return sortedGoals.map((goal) => {
     // Use the pre-grouped allocations map
     const goalAllocations = allocationsByGoal.get(goal.id) ?? [];
 
     // Calculate the total value allocated to this goal in base currency
+    // Only count allocations that are active on today's date
     const totalAllocatedValue = goalAllocations.reduce((total, allocation) => {
+      // Check if allocation is active on today's date
+      const isActive = 
+        (!allocation.startDate || allocation.startDate <= todayStr) &&
+        (!allocation.endDate || allocation.endDate >= todayStr);
+      
+      if (!isActive) {
+        return total; // Skip allocations that aren't active today
+      }
+
       const accountValueInBase = accountValueMap.get(allocation.accountId) ?? 0;
       const allocatedValue = (accountValueInBase * allocation.percentAllocation) / 100;
       return total + allocatedValue;

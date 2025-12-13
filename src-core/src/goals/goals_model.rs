@@ -28,6 +28,7 @@ pub struct Goal {
     pub due_date: Option<String>,
     pub monthly_investment: Option<f64>,
     pub start_date: Option<String>,
+    pub initial_actual_value: Option<f64>,
 }
 
 #[derive(Insertable, Serialize, Deserialize, Debug, Clone)]
@@ -43,6 +44,7 @@ pub struct NewGoal {
     pub due_date: Option<String>,
     pub monthly_investment: Option<f64>,
     pub start_date: Option<String>,
+    pub initial_actual_value: Option<f64>,
 }
 
 #[derive(
@@ -68,4 +70,6 @@ pub struct GoalsAllocation {
     pub goal_id: String,
     pub account_id: String,
     pub percent_allocation: i32,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
 }

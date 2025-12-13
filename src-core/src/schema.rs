@@ -119,6 +119,7 @@ diesel::table! {
         due_date -> Nullable<Text>,
         monthly_investment -> Nullable<Double>,
         start_date -> Nullable<Text>,
+        initial_actual_value -> Nullable<Double>,
     }
 }
 
@@ -128,6 +129,8 @@ diesel::table! {
         percent_allocation -> Integer,
         goal_id -> Text,
         account_id -> Text,
+        start_date -> Nullable<Text>,
+        end_date -> Nullable<Text>,
     }
 }
 

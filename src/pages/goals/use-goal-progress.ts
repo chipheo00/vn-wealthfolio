@@ -76,6 +76,10 @@ export function useGoalProgress(goals: Goal[] | undefined) {
     const valuationMap = new Map<string, AccountValuation>();
     latestValuations.forEach((val) => valuationMap.set(val.accountId, val));
 
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
     // Calculate progress for each goal
     goals.forEach((goal) => {
       let currentValue = 0;
@@ -84,7 +88,17 @@ export function useGoalProgress(goals: Goal[] | undefined) {
       const goalAllocations = allocations.filter((alloc) => alloc.goalId === goal.id);
 
       // Sum up the allocated values from each account
+      // Only count allocations that are active on today's date
       goalAllocations.forEach((alloc) => {
+        // Check if allocation is active on today's date
+        const isActive = 
+          (!alloc.startDate || alloc.startDate <= todayStr) &&
+          (!alloc.endDate || alloc.endDate >= todayStr);
+        
+        if (!isActive) {
+          return; // Skip allocations that aren't active today
+        }
+
         const accountValuation = valuationMap.get(alloc.accountId);
         if (accountValuation) {
           // Account value * allocation percentage (allocation is stored as 0-100)
