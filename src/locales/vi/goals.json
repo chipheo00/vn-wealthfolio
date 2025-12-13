@@ -135,7 +135,9 @@
     "completed": "Đã hoàn thành",
     "ongoing": "Đang thực hiện",
     "current": "Hiện tại",
-    "target": "Mục tiêu"
+    "target": "Mục tiêu",
+    "notStarted": "Chưa bắt đầu",
+    "overdue": "Quá hạn"
   },
   "time": {
     "notSet": "Chưa thiết lập",

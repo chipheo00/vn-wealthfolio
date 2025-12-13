@@ -135,7 +135,9 @@
     "completed": "Completed",
     "ongoing": "Ongoing",
     "current": "Current",
-    "target": "Target"
+    "target": "Target",
+    "notStarted": "Not Started",
+    "overdue": "Overdue"
   },
   "time": {
     "notSet": "Not set",

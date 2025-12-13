@@ -25,6 +25,16 @@ export function GoalItem({ goal, currentValue = 0, progress = 0, isOnTrack = tru
     if (goal.isAchieved) {
       return { text: t("item.done"), colorVar: "var(--success)" };
     }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = goal.startDate ? new Date(goal.startDate) : null;
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+
+    // Check if not started
+    if (startDate && startDate > today) {
+       return { text: "", colorVar: "var(--muted-foreground)" }; // No track status for not started
+    }
+
     if (isOnTrack) {
       return { text: t("item.onTrack"), colorVar: "var(--chart-actual-on-track)" };
     }
@@ -32,6 +42,31 @@ export function GoalItem({ goal, currentValue = 0, progress = 0, isOnTrack = tru
   };
 
   const trackStatus = getTrackStatus();
+
+  const getGoalStatus = () => {
+      if (goal.isAchieved) return { label: t("item.completed"), className: "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30" };
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const startDate = goal.startDate ? new Date(goal.startDate) : null;
+      if(startDate) startDate.setHours(0, 0, 0, 0);
+
+      const dueDate = goal.dueDate ? new Date(goal.dueDate) : null;
+      if(dueDate) dueDate.setHours(0, 0, 0, 0);
+
+      if (startDate && startDate > today) {
+          return { label: t("item.notStarted"), className: "text-muted-foreground bg-muted" };
+      }
+
+      if (dueDate && dueDate < today) {
+          return { label: t("item.overdue"), className: "text-destructive bg-destructive/10" };
+      }
+
+      return { label: t("item.ongoing"), className: "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30" };
+  }
+
+  const status = getGoalStatus();
 
   return (
     <div
@@ -47,11 +82,9 @@ export function GoalItem({ goal, currentValue = 0, progress = 0, isOnTrack = tru
             <h3 className="text-foreground text-lg font-bold">{goal.title}</h3>
             <span className={cn(
               "text-xs px-2 py-0.5 rounded-full font-medium",
-              goal.isAchieved
-                ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30"
-                : "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30"
+              status.className
             )}>
-              {goal.isAchieved ? t("item.completed") : t("item.ongoing")}
+              {status.label}
             </span>
           </div>
         </div>
