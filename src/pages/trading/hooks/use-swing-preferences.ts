@@ -1,5 +1,5 @@
-import type { SwingTradePreferences } from "../types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { SwingTradePreferences } from "../types";
 
 const DEFAULT_PREFERENCES: SwingTradePreferences = {
   selectedActivityIds: [],
@@ -8,7 +8,7 @@ const DEFAULT_PREFERENCES: SwingTradePreferences = {
   lotMatchingMethod: "FIFO",
   defaultDateRange: "YTD",
   includeFees: true,
-  includeDividends: false,
+  includeDividends: true,
 };
 
 const PREFERENCES_KEY = "swingfolio_preferences";

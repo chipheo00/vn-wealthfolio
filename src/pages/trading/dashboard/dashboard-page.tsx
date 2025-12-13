@@ -107,6 +107,40 @@ export default function DashboardPage() {
         <div className="space-y-4 sm:space-y-6 pt-4">
             <KPISummaryCards metrics={metrics} t={t} />
 
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PeriodSelector
+                  selectedPeriod={selectedPeriod}
+                  onPeriodSelect={setSelectedPeriod}
+                  t={t}
+                />
+                <span className="text-muted-foreground border-l pl-2 ml-2 hidden text-xs sm:inline-block">
+                  {getChartPeriodDisplay(selectedPeriod, t).description}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="hidden h-8 rounded-full text-xs sm:inline-flex"
+                  onClick={handleNavigateToActivities}
+                >
+                  <Icons.ListChecks className="mr-2 h-3.5 w-3.5" />
+                  <span>{t("dashboard.selectActivities")}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleNavigateToActivities}
+                  className="h-8 w-8 sm:hidden"
+                  aria-label="Select activities"
+                >
+                  <Icons.ListChecks className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+
+
             {/* Charts Row - Equity Curve and Calendar */}
             <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
             {/* Equity Curve */}
@@ -212,35 +246,6 @@ export default function DashboardPage() {
 
         <PageContent className="flex-1 space-y-4 pt-4">
             <TabsContent value="dashboard" className="space-y-4 m-0 h-full flex flex-col">
-                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <PeriodSelector selectedPeriod={selectedPeriod} onPeriodSelect={setSelectedPeriod} t={t} />
-                        <span className="text-muted-foreground text-xs hidden sm:inline-block border-l pl-2 ml-2">
-                             {getChartPeriodDisplay(selectedPeriod, t).description}
-                        </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            className="hidden rounded-full sm:inline-flex h-8 text-xs"
-                            onClick={handleNavigateToActivities}
-                        >
-                            <Icons.ListChecks className="mr-2 h-3.5 w-3.5" />
-                            <span>{t("dashboard.selectActivities")}</span>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={handleNavigateToActivities}
-                            className="sm:hidden h-8 w-8"
-                            aria-label="Select activities"
-                        >
-                            <Icons.ListChecks className="h-3.5 w-3.5" />
-                        </Button>
-                    </div>
-                 </div>
-
                 {renderDashboardContent()}
             </TabsContent>
             <TabsContent value="income" className="space-y-4 m-0">
