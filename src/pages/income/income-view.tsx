@@ -161,7 +161,7 @@ export function IncomeView() {
     <div className="space-y-6">
       {header}
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-yellow-500/10 bg-yellow-500/10">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               {selectedPeriod === "TOTAL"
@@ -228,7 +228,7 @@ export function IncomeView() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-yellow-500/10 bg-yellow-500/10">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               {t("income:summary.monthlyAverage")}
@@ -251,7 +251,7 @@ export function IncomeView() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-yellow-500/10 bg-yellow-500/10">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               {t("income:summary.incomeSources")}
