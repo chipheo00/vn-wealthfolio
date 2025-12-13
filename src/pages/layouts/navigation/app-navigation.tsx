@@ -56,11 +56,6 @@ export function useNavigation() {
         href: "/performance",
       },
       {
-        icon: <Icons.Income className="size-6" />,
-        title: t("navigation.income"),
-        href: "/income",
-      },
-      {
         icon: <Icons.Trading className="size-6" />,
         title: t("navigation.trading"),
         href: "/trading",
