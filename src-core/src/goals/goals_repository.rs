@@ -225,6 +225,7 @@ impl GoalRepositoryTrait for GoalRepository {
                     .execute(conn)?;
                 Ok(goals_allocation::table
                     .filter(goals_allocation::id.eq(allocation_id_owned))
+                    .select(GoalsAllocation::as_select())
                     .first(conn)?)
             })
             .await

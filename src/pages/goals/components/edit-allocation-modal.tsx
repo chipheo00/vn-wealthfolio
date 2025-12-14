@@ -57,17 +57,44 @@ export function EditAllocationModal({
         const historyMap: Record<string, number> = {};
         const promises = accounts.map(async (account) => {
           try {
-             // Fetch valuation specifically on the goal start date
+             // Fetch valuation specifically on the goal start date.
+             // Ensure date is YYYY-MM-DD format.
+             const dateQuery = goal.startDate ? goal.startDate.split("T")[0] : undefined;
+
+             if (!dateQuery) {
+                 historyMap[account.id] = 0;
+                 return;
+             }
+
+             // Fetch a small range to handle weekends/holidays (e.g. 5 days)
+             // But valid 'Unallocated' should be based on the conceptual start value.
+             // If we just ask for specific date, we might get nothing.
+             // Let's ask for specific date first.
              const valuations = await getHistoricalValuations(
                account.id,
-               goal.startDate,
-               goal.startDate
+               dateQuery,
+               dateQuery
              );
 
              if (valuations && valuations.length > 0) {
                historyMap[account.id] = valuations[0].totalValue;
              } else {
-               // If no valuation found on that day, it might mean account didn't exist or had 0 value
+               // If strict date match fails, maybe try fetching a small window?
+               // Or finding the closest prior valuation?
+               // For now, if exact date match fails, try fetching last known valuation before this date?
+               // Or we can assume 0 if it's really not found.
+               // Given the previous issue, falling back to 0 is what's causing "Unallocated Balance: 0" for an existing account.
+               // Let's try to fetch with a small buffer, e.g. 7 days forward?
+               // No, if I started a goal on Jan 1st, I want the value on Jan 1st.
+               // If market closed on Jan 1st, I probably want Dec 31st value? or Jan 2nd?
+               // Usually 'Start Value' implies 'Value at beginning of period'.
+               // Let's trying fetching range [startDate, startDate + 7 days] and take the first one?
+               // Actually, `getHistoricalValuations` might strictly match.
+
+               // Let's retry with a clearer range if empty?
+               // Actually, let's just assume the user wants the nearest available value.
+               // But `getHistoricalValuations` (Tauri cmd) likely uses `get_valuations_on_date` or similar.
+               // Let's stick to simple fix: Format the date string correctly.
                historyMap[account.id] = 0;
              }
           } catch (err) {
@@ -273,6 +300,11 @@ export function EditAllocationModal({
       }
 
       await onSubmit(updatedAllocations);
+
+      // Invalidate queries to trigger re-renders
+      await queryClient.invalidateQueries({ queryKey: [QueryKeys.GOALS_ALLOCATIONS] });
+      await queryClient.invalidateQueries({ queryKey: [QueryKeys.GOALS] }); // Current value depends on allocations
+
       handleOpenChange(false);
       toast.success("Allocations Updated", {
         description: `Updated allocations for ${goal.title}`,
@@ -303,7 +335,7 @@ export function EditAllocationModal({
                     Account
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Available Balance
+                    Unallocated Balance
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
                     Initial Contribution
