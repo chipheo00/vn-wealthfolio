@@ -50,9 +50,12 @@ export default function GoalDetailsPage() {
   const accountIds = accounts?.map(acc => acc.id) || [];
   const { latestValuations } = useLatestValuations(accountIds);
 
-  // Build current account values map from valuations (not from account.balance which may be stale)
+  // Build current account values map from valuations, fallback to account.balance
   const currentAccountValuesFromValuations = new Map(
-    (latestValuations || []).map(val => [val.accountId, val.totalValue])
+    (accounts || []).map(acc => {
+      const valuation = (latestValuations || []).find(v => v.accountId === acc.id);
+      return [acc.id, valuation?.totalValue ?? acc.balance ?? 0];
+    })
   );
 
   const [visibleModal, setVisibleModal] = useState(false);

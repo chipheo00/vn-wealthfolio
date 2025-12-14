@@ -213,5 +213,10 @@
     "allocationsExplanation": "Phân bổ xác định tài khoản nào đóng góp cho mục tiêu này và bao nhiêu phần trăm tăng trưởng của mỗi tài khoản được tính vào mục tiêu của bạn.",
     "skipForNow": "Bỏ qua",
     "addAllocations": "Thêm phân bổ"
+  },
+  "deleteAllocation": {
+    "title": "Xóa phân bổ",
+    "description": "Bạn có chắc chắn muốn xóa phân bổ này không? Hành động này không thể hoàn tác.",
+    "confirm": "Xóa"
   }
 }

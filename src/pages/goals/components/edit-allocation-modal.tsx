@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Account, Goal, GoalAllocation } from "@/lib/types";
+import { QueryKeys } from "@/lib/query-keys";
 import { formatAmount } from "@wealthvn/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface EditAllocationModalProps {
@@ -33,6 +35,7 @@ export function EditAllocationModal({
   allAllocations = [],
   onSubmit,
 }: EditAllocationModalProps) {
+  const queryClient = useQueryClient();
   const [allocations, setAllocations] = useState<Record<string, { amount: number; percentage: number }>>({});
   const [availableBalances, setAvailableBalances] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,7 +64,7 @@ export function EditAllocationModal({
         return sum;
       }, 0);
 
-      // Available = Current value - Allocated to other goals
+      // Available = Unallocated from other goals at this goal's start date
       // This gives us the max amount that can be allocated to this goal
       balances[account.id] = Math.max(0, currentValue - allocatedToOtherGoals);
     }
@@ -69,16 +72,23 @@ export function EditAllocationModal({
     setAvailableBalances(balances);
   };
 
-  // Handle modal open
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) {
+  // Initialize when modal opens
+  useEffect(() => {
+    if (open) {
+      // Invalidate and refetch allocations to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.GOALS_ALLOCATIONS] });
+      queryClient.refetchQueries({ queryKey: [QueryKeys.GOALS_ALLOCATIONS] });
+    }
+  }, [open, queryClient]);
+
+  // Prefill form when allocations are updated
+  useEffect(() => {
+    if (open) {
       calculateAvailableBalances();
 
       // Prefill allocations with existing goal allocations
       const prefilledAllocations: Record<string, { amount: number; percentage: number }> = {};
       for (const account of accounts) {
-        const currentValue = currentAccountValues.get(account.id) || 0;
-
         // Find existing allocation for this account in this goal
         const existingAlloc = existingAllocations.find(
           (alloc) => alloc.accountId === account.id
@@ -88,8 +98,7 @@ export function EditAllocationModal({
           // Prefill with existing allocation values
           prefilledAllocations[account.id] = {
             amount: existingAlloc.allocationAmount,
-            percentage: existingAlloc.allocationPercentage ||
-              (currentValue > 0 ? (existingAlloc.allocationAmount / currentValue) * 100 : 0),
+            percentage: existingAlloc.allocationPercentage || 0,
           };
         }
       }
@@ -97,33 +106,31 @@ export function EditAllocationModal({
       setAllocations(prefilledAllocations);
       setErrors({});
     }
+  }, [open, existingAllocations, allAllocations, accounts, currentAccountValues]);
+
+  // Handle modal open/close
+  const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
   };
 
-  // Handle amount change
+  // Handle amount change - INDEPENDENT from percentage
   const handleAmountChange = (accountId: string, value: number) => {
-    const currentValue = currentAccountValues.get(accountId) || 0;
-    const percentage = currentValue > 0 ? (value / currentValue) * 100 : 0;
-
     setAllocations((prev) => ({
       ...prev,
       [accountId]: {
         amount: value,
-        percentage: Math.round(percentage * 100) / 100,
+        percentage: prev[accountId]?.percentage || 0,
       },
     }));
     setErrors((prev) => ({ ...prev, [accountId]: "" }));
   };
 
-  // Handle percentage change
+  // Handle percentage change - INDEPENDENT from amount
   const handlePercentageChange = (accountId: string, value: number) => {
-    const currentValue = currentAccountValues.get(accountId) || 0;
-    const amount = (value / 100) * currentValue;
-
     setAllocations((prev) => ({
       ...prev,
       [accountId]: {
-        amount: Math.round(amount * 100) / 100,
+        amount: prev[accountId]?.amount || 0,
         percentage: value,
       },
     }));
@@ -136,24 +143,41 @@ export function EditAllocationModal({
 
     for (const account of accounts) {
       const alloc = allocations[account.id];
+
+      // Skip if no allocation set for this account
       if (!alloc || (alloc.amount === 0 && alloc.percentage === 0)) continue;
 
-      // Validate amount
-      if (alloc.amount <= 0) {
-        newErrors[account.id] = "Amount must be greater than 0";
+      // Validate amount - must be > 0 if set
+      if (alloc.amount < 0) {
+        newErrors[account.id] = "Amount cannot be negative";
         continue;
       }
 
-      // Validate percentage
-      if (alloc.percentage <= 0 || alloc.percentage > 100) {
+      // Validate percentage - must be between 0 and 100
+      if (alloc.percentage < 0 || alloc.percentage > 100) {
         newErrors[account.id] = "Percentage must be between 0 and 100";
         continue;
       }
 
-      // Check available balance (includes current goal's existing allocation)
+      // Check available balance for amount
       const available = availableBalances[account.id] || 0;
       if (alloc.amount > available) {
         newErrors[account.id] = `Amount exceeds available balance (${formatAmount(available, "USD", false)})`;
+        continue;
+      }
+
+      // Check total percentage across all goals for this account
+      // Sum percentages from other goals
+      const otherGoalsPercentage = allAllocations.reduce((sum, existingAlloc) => {
+        if (existingAlloc.accountId === account.id && existingAlloc.goalId !== goal.id) {
+          return sum + (existingAlloc.allocationPercentage || 0);
+        }
+        return sum;
+      }, 0);
+
+      const totalPercentage = otherGoalsPercentage + alloc.percentage;
+      if (totalPercentage > 100) {
+        newErrors[account.id] = `Total allocation exceeds 100% (other goals: ${otherGoalsPercentage.toFixed(1)}%, this: ${alloc.percentage.toFixed(1)}%)`;
         continue;
       }
     }
@@ -170,27 +194,34 @@ export function EditAllocationModal({
 
     setIsLoading(true);
     try {
-      const newAllocations: GoalAllocation[] = [];
+      const updatedAllocations: GoalAllocation[] = [];
       const allocationDate = new Date().toISOString().split("T")[0];
 
       for (const account of accounts) {
         const alloc = allocations[account.id];
-        if (!alloc || (alloc.amount === 0 && alloc.percentage === 0)) continue;
+        
+        // Find existing allocation for this account (should always exist)
+        const existingAlloc = existingAllocations.find(
+          (a) => a.accountId === account.id
+        );
 
-        newAllocations.push({
-          id: `${goal.id}-${account.id}-${Date.now()}`,
-          goalId: goal.id,
-          accountId: account.id,
-          percentAllocation: Math.round(alloc.percentage),
-          allocationAmount: alloc.amount,
-          allocationPercentage: alloc.percentage,
-          initAmount: alloc.amount,
-          allocationDate,
-          startDate: allocationDate,
-        } as GoalAllocation);
+        if (!existingAlloc) {
+          console.warn(`No existing allocation found for account ${account.id}`);
+          continue;
+        }
+
+        // Update existing allocation record with new values
+        updatedAllocations.push({
+          ...existingAlloc,
+          allocationAmount: alloc?.amount || 0,
+          allocationPercentage: alloc?.percentage || 0,
+          percentAllocation: Math.round(alloc?.percentage || 0),
+          initAmount: alloc?.amount || existingAlloc.initAmount,
+          allocationDate: existingAlloc.allocationDate || allocationDate,
+        });
       }
 
-      await onSubmit(newAllocations);
+      await onSubmit(updatedAllocations);
       handleOpenChange(false);
       toast.success("Allocations Updated", {
         description: `Updated allocations for ${goal.title}`,

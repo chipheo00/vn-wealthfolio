@@ -213,5 +213,10 @@
     "allocationsExplanation": "Allocations determine which accounts fund this goal and what percentage of each account's growth counts toward your goal.",
     "skipForNow": "Skip for now",
     "addAllocations": "Add Allocations"
+  },
+  "deleteAllocation": {
+    "title": "Delete Allocation",
+    "description": "Are you sure you want to delete this allocation? This action cannot be undone.",
+    "confirm": "Delete"
   }
 }

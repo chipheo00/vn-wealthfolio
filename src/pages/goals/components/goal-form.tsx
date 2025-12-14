@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 
 import { newGoalSchema } from "@/lib/schemas";
 import { useGoalMutations } from "@/pages/goals/use-goal-mutations";
+import { useAccounts } from "@/hooks/use-accounts";
 
 // Infer type from schema (input type = works with Date)
 type NewGoal = z.infer<typeof newGoalSchema>;
@@ -42,7 +43,8 @@ interface GoalFormProps {
 export function GoalForm({ defaultValues, onSuccess = () => undefined }: GoalFormProps) {
   const { t } = useTranslation("goals");
   const navigate = useNavigate();
-  const { addGoalMutation, updateGoalMutation } = useGoalMutations();
+  const { accounts } = useAccounts();
+  const { addGoalMutation, updateGoalMutation, saveAllocationsMutation } = useGoalMutations();
 
   const form = useForm<NewGoal>({
     resolver: zodResolver(newGoalSchema),
@@ -114,12 +116,31 @@ export function GoalForm({ defaultValues, onSuccess = () => undefined }: GoalFor
     return addGoalMutation.mutate(payload, {
       onSuccess: (createdGoal) => {
         onSuccess();
+        
+        // Create default allocations (0 amount, 0%) for all accounts
+        if (accounts && accounts.length > 0) {
+          const allocationDate = new Date().toISOString().split("T")[0];
+          const defaultAllocations = accounts.map((account) => ({
+            id: `${createdGoal.id}-${account.id}-${Date.now()}`,
+            goalId: createdGoal.id,
+            accountId: account.id,
+            percentAllocation: 0,
+            allocationAmount: 0,
+            allocationPercentage: 0,
+            initAmount: 0,
+            allocationDate,
+            startDate: allocationDate,
+          }));
+          
+          saveAllocationsMutation.mutate(defaultAllocations);
+        }
+        
         // Show toast with action to add allocations
         toast.success(t("form.postCreation.success"), {
           description: t("form.postCreation.description"),
           action: {
             label: t("form.postCreation.addAllocations"),
-            onClick: () => navigate(`/goals/allocations?goalId=${createdGoal.id}`),
+            onClick: () => navigate(`/goals/${createdGoal.id}`),
           },
           duration: 8000,
         });

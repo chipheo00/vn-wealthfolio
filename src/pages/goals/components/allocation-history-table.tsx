@@ -1,16 +1,27 @@
-import React, { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { GoalAllocation, AllocationVersion, Account } from "@/lib/types";
-import { invoke } from "@tauri-apps/api/core";
-import { AllocationModal } from "./allocation-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Icons } from "@wealthvn/ui";
 import { useDateFormatter } from "@/hooks/use-date-formatter";
+import { Account, AllocationVersion, GoalAllocation } from "@/lib/types";
+import { invoke } from "@tauri-apps/api/core";
+import { Icons } from "@wealthvn/ui";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AllocationModal } from "./allocation-modal";
 
 interface AllocationHistoryTableProps {
   goalId: string;
@@ -36,7 +47,9 @@ export function AllocationHistoryTable({
   const [isLoadingVersions, setIsLoadingVersions] = useState<Set<string>>(new Set());
   const [editingAllocationId, setEditingAllocationId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [allocationToDelete, setAllocationToDelete] = useState<GoalAllocation | null>(null);
   const { formatActivityDate } = useDateFormatter();
+  const { t } = useTranslation("goals");
 
   // Fetch allocation versions when expanded
   const handleExpandAllocation = async (allocationId: string) => {
@@ -105,7 +118,7 @@ export function AllocationHistoryTable({
                         ${(alloc.initAmount + (currentValue - alloc.initAmount) * (alloc.allocationPercentage / 100)).toFixed(2)}
                       </td>
                       <td className="text-center px-4 py-2 text-xs text-muted-foreground">
-                        {formatActivityDate(alloc.allocationDate)}
+                        {alloc.allocationDate ? formatActivityDate(alloc.allocationDate) : "-"}
                       </td>
                       {!readOnly && (
                         <td className="text-center px-4 py-2">
@@ -125,7 +138,7 @@ export function AllocationHistoryTable({
                                   setIsEditModalOpen(true);
                                 }}
                               >
-                                Edit
+                                {t("operations.edit")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleExpandAllocation(alloc.id)}
@@ -134,13 +147,9 @@ export function AllocationHistoryTable({
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600"
-                                onClick={async () => {
-                                  if (onAllocationDeleted && confirm("Delete this allocation?")) {
-                                    await onAllocationDeleted(alloc.id);
-                                  }
-                                }}
+                                onClick={() => setAllocationToDelete(alloc)}
                               >
-                                Delete
+                                {t("operations.delete")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -182,6 +191,35 @@ export function AllocationHistoryTable({
           onSubmit={onAllocationUpdated}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog
+        open={!!allocationToDelete}
+        onOpenChange={(open) => !open && setAllocationToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteAllocation.title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("deleteAllocation.description")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("editModal.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={async () => {
+                if (allocationToDelete && onAllocationDeleted) {
+                  await onAllocationDeleted(allocationToDelete.id);
+                  setAllocationToDelete(null);
+                }
+              }}
+            >
+              {t("deleteAllocation.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
