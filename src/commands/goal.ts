@@ -11,6 +11,22 @@ export type NewGoalInput = Omit<NewGoalForm, "deadline"> & {
   deadline?: string;
 };
 
+// Raw backend type including legacy fields
+interface RawGoalAllocation extends GoalAllocation {
+  percentAllocation?: number;
+  allocationAmount?: number;
+}
+
+// Helper to normalize allocations from backend
+const normalizeAllocation = (raw: RawGoalAllocation): GoalAllocation => {
+  return {
+    ...raw,
+    // Use new fields, fallback to legacy, fallback to 0
+    initialContribution: raw.initialContribution ?? raw.allocationAmount ?? 0,
+    allocatedPercent: raw.allocatedPercent ?? raw.percentAllocation ?? 0,
+  };
+};
+
 export const getGoals = async (): Promise<Goal[]> => {
   try {
     switch (getRunEnv()) {
@@ -103,14 +119,18 @@ export const updateGoalsAllocations = async (allocations: GoalAllocation[]): Pro
 
 export const getGoalsAllocation = async (): Promise<GoalAllocation[]> => {
   try {
+    let allocations: RawGoalAllocation[] = [];
     switch (getRunEnv()) {
       case RUN_ENV.DESKTOP:
-        return invokeTauri("load_goals_allocations");
+        allocations = await invokeTauri<RawGoalAllocation[]>("load_goals_allocations");
+        break;
       case RUN_ENV.WEB:
-        return invokeWeb("load_goals_allocations");
+        allocations = await invokeWeb<RawGoalAllocation[]>("load_goals_allocations");
+        break;
       default:
         throw new Error(`Unsupported`);
     }
+    return allocations.map(normalizeAllocation);
   } catch (error) {
     logger.error("Error fetching goals allocations.");
     throw error;
@@ -160,14 +180,18 @@ export const getGoalAllocationsOnDate = async (
   date?: string
 ): Promise<GoalAllocation[]> => {
   try {
+    let allocations: RawGoalAllocation[] = [];
     switch (getRunEnv()) {
       case RUN_ENV.DESKTOP:
-        return invokeTauri("get_goal_allocations_on_date", { goalId, date });
+        allocations = await invokeTauri<RawGoalAllocation[]>("get_goal_allocations_on_date", { goalId, date });
+        break;
       case RUN_ENV.WEB:
-        return invokeWeb("get_goal_allocations_on_date", { goalId, date });
+        allocations = await invokeWeb<RawGoalAllocation[]>("get_goal_allocations_on_date", { goalId, date });
+        break;
       default:
         throw new Error(`Unsupported`);
     }
+    return allocations.map(normalizeAllocation);
   } catch (error) {
     logger.error("Error fetching goal allocations on date.");
     throw error;

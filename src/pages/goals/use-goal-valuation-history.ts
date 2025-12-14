@@ -384,13 +384,13 @@ export function useGoalValuationHistory(
     );
     dateIntervals = uniqueDates.sort((a, b) => a.getTime() - b.getTime());
 
-    // Get allocation details (percentage, init amount, and start date) for this goal
-    const allocationDetailsMap = new Map<string, { percentage: number; initAmount: number; startDate?: string }>();
+    // Get allocation details (percentage, initial contribution, and start date) for this goal
+    const allocationDetailsMap = new Map<string, { percentage: number; initialContribution: number; startDate?: string }>();
     allocations?.forEach((alloc) => {
       if (alloc.goalId === goal.id) {
         allocationDetailsMap.set(alloc.accountId, {
-          percentage: alloc.allocationPercentage / 100,
-          initAmount: alloc.initAmount,
+          percentage: alloc.allocatedPercent / 100,
+          initialContribution: alloc.initialContribution,
           startDate: alloc.allocationDate,
         });
       }
@@ -408,7 +408,7 @@ export function useGoalValuationHistory(
       });
 
       // For each date, calculate the weighted sum using the same formula as allocation table
-      // Formula: actualValue = initAmount + (valueAtDate - valueAtAllocationStartDate) * (allocationPercentage)
+      // Formula: actualValue = initialContribution + (valueAtDate - valueAtAllocationStartDate) * (allocatedPercent)
       Array.from(allDates)
         .sort()
         .forEach((dateStr) => {
@@ -420,10 +420,10 @@ export function useGoalValuationHistory(
 
             const valuation = valuations.find((v) => v.valuationDate === dateStr);
             if (valuation) {
-              const { initAmount, percentage, startDate } = allocationDetails;
+              const { initialContribution, percentage, startDate } = allocationDetails;
               
               // Find the account value at the allocation start date
-              let startDateValue = initAmount;
+              let startDateValue = initialContribution;
               if (startDate) {
                 const startValuation = valuations.find((v) => v.valuationDate === startDate);
                 if (startValuation) {
@@ -431,7 +431,7 @@ export function useGoalValuationHistory(
                 }
               }
               
-              const contributedValue = initAmount + (valuation.totalValue - startDateValue) * percentage;
+              const contributedValue = initialContribution + (valuation.totalValue - startDateValue) * percentage;
               totalValue += contributedValue;
             }
           });

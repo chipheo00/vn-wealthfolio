@@ -43,12 +43,12 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
   useEffect(() => {
     // When showing remaining, calculate from all allocations
     const sourceAllocations = showRemaining && allAllocations ? allAllocations : allocations;
-    
+
     const totals = accounts.reduce(
       (acc, account) => {
         acc[account.id] = sourceAllocations.reduce((sum, alloc) => {
           if (alloc.accountId === account.id) {
-            return sum + (alloc.percentAllocation || 0);
+            return sum + (alloc.allocatedPercent || 0);
           }
           return sum;
         }, 0);
@@ -64,7 +64,7 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
   const handleAllocationChange = (goalId: string, accountId: string, value: number) => {
     const updatedAllocations = allocations.map((alloc) =>
       alloc.goalId === goalId && alloc.accountId === accountId
-        ? { ...alloc, percentAllocation: value, allocationPercentage: value }
+        ? { ...alloc, allocatedPercent: value }
         : alloc,
     );
     if (
@@ -76,10 +76,8 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
           id: `${goalId}-${accountId}`,
           goalId,
           accountId,
-          percentAllocation: value,
-          allocationPercentage: value,
-          allocationAmount: 0,
-          initAmount: 0,
+          allocatedPercent: value,
+          initialContribution: 0,
         } as GoalAllocation);
       }
     }
@@ -123,7 +121,7 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
                     const remainingPercent = Math.max(0, 100 - totalAllocations[account.id]);
                     const currentValue = currentAccountValues.get(account.id) || 0;
                     const totalAllocated = allocations.reduce((sum, alloc) => {
-                      return alloc.accountId === account.id ? sum + (alloc.allocationAmount || 0) : sum;
+                      return alloc.accountId === account.id ? sum + (alloc.initialContribution || 0) : sum;
                     }, 0);
                     const remainingValue = Math.max(0, currentValue - totalAllocated);
                     return (
@@ -156,7 +154,7 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
                     const remainingPercent = Math.max(0, 100 - totalAllocations[account.id]);
                     const currentValue = currentAccountValues.get(account.id) || 0;
                     const totalAllocated = allocations.reduce((sum, alloc) => {
-                      return alloc.accountId === account.id ? sum + (alloc.allocationAmount || 0) : sum;
+                      return alloc.accountId === account.id ? sum + (alloc.initialContribution || 0) : sum;
                     }, 0);
                     const remainingValue = Math.max(0, currentValue - totalAllocated);
                     return (
@@ -193,7 +191,7 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
                       <td key={account.id} className="border-r px-1 py-0">
                          <Input
                            className="m-0 h-full w-full rounded-none border-none px-2 text-right text-xs"
-                           value={existingAllocation ? existingAllocation.percentAllocation : ""}
+                           value={existingAllocation ? existingAllocation.allocatedPercent : ""}
                            onChange={(e) =>
                              handleAllocationChange(goal.id, account.id, Number(e.target.value))
                            }
@@ -213,7 +211,7 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
                     return (
                       <td key={account.id} className="border-r px-1 py-0 text-muted-foreground text-xs">
                         <div className="px-2 py-1 text-right">
-                          {existingAllocation ? formatAmount(existingAllocation.allocationAmount || 0, currency, false) : "-"}
+                          {existingAllocation ? formatAmount(existingAllocation.initialContribution || 0, currency, false) : "-"}
                         </div>
                       </td>
                     );

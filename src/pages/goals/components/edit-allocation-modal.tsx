@@ -7,11 +7,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Account, Goal, GoalAllocation } from "@/lib/types";
 import { QueryKeys } from "@/lib/query-keys";
+import { Account, Goal, GoalAllocation } from "@/lib/types";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatAmount } from "@wealthvn/ui";
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface EditAllocationModalProps {
@@ -36,7 +36,7 @@ export function EditAllocationModal({
   onSubmit,
 }: EditAllocationModalProps) {
   const queryClient = useQueryClient();
-  const [allocations, setAllocations] = useState<Record<string, { amount: number; percentage: number }>>({});
+  const [allocations, setAllocations] = useState<Record<string, { allocationAmount: number; allocatedPercent: number }>>({});
   const [availableBalances, setAvailableBalances] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -58,8 +58,7 @@ export function EditAllocationModal({
 
       // Sum allocations for this account from OTHER goals (not this goal)
       const allocatedToOtherGoals = allAllocations.reduce((sum, alloc) => {
-        if (alloc.accountId === account.id && alloc.goalId !== goal.id) {
-          return sum + alloc.allocationAmount;
+          return sum + (alloc.initialContribution ?? 0);
         }
         return sum;
       }, 0);
@@ -87,7 +86,7 @@ export function EditAllocationModal({
       calculateAvailableBalances();
 
       // Prefill allocations with existing goal allocations
-      const prefilledAllocations: Record<string, { amount: number; percentage: number }> = {};
+      const prefilledAllocations: Record<string, { allocationAmount: number; allocatedPercent: number }> = {};
       for (const account of accounts) {
         // Find existing allocation for this account in this goal
         const existingAlloc = existingAllocations.find(
@@ -97,8 +96,8 @@ export function EditAllocationModal({
         if (existingAlloc) {
           // Prefill with existing allocation values
           prefilledAllocations[account.id] = {
-            amount: existingAlloc.allocationAmount,
-            percentage: existingAlloc.allocationPercentage || 0,
+            allocationAmount: existingAlloc.initialContribution,
+            allocatedPercent: existingAlloc.allocatedPercent || 0,
           };
         }
       }
@@ -118,8 +117,8 @@ export function EditAllocationModal({
     setAllocations((prev) => ({
       ...prev,
       [accountId]: {
-        amount: value,
-        percentage: prev[accountId]?.percentage || 0,
+        allocationAmount: value,
+        allocatedPercent: prev[accountId]?.allocatedPercent || 0,
       },
     }));
     setErrors((prev) => ({ ...prev, [accountId]: "" }));
@@ -130,8 +129,8 @@ export function EditAllocationModal({
     setAllocations((prev) => ({
       ...prev,
       [accountId]: {
-        amount: prev[accountId]?.amount || 0,
-        percentage: value,
+        allocationAmount: prev[accountId]?.allocationAmount || 0,
+        allocatedPercent: value,
       },
     }));
     setErrors((prev) => ({ ...prev, [accountId]: "" }));
@@ -145,23 +144,23 @@ export function EditAllocationModal({
       const alloc = allocations[account.id];
 
       // Skip if no allocation set for this account
-      if (!alloc || (alloc.amount === 0 && alloc.percentage === 0)) continue;
+      if (!alloc || (alloc.allocationAmount === 0 && alloc.allocatedPercent === 0)) continue;
 
       // Validate amount - must be > 0 if set
-      if (alloc.amount < 0) {
+      if (alloc.allocationAmount < 0) {
         newErrors[account.id] = "Amount cannot be negative";
         continue;
       }
 
       // Validate percentage - must be between 0 and 100
-      if (alloc.percentage < 0 || alloc.percentage > 100) {
+      if (alloc.allocatedPercent < 0 || alloc.allocatedPercent > 100) {
         newErrors[account.id] = "Percentage must be between 0 and 100";
         continue;
       }
 
       // Check available balance for amount
       const available = availableBalances[account.id] || 0;
-      if (alloc.amount > available) {
+      if (alloc.allocationAmount > available) {
         newErrors[account.id] = `Amount exceeds available balance (${formatAmount(available, "USD", false)})`;
         continue;
       }
@@ -170,14 +169,14 @@ export function EditAllocationModal({
       // Sum percentages from other goals
       const otherGoalsPercentage = allAllocations.reduce((sum, existingAlloc) => {
         if (existingAlloc.accountId === account.id && existingAlloc.goalId !== goal.id) {
-          return sum + (existingAlloc.allocationPercentage || 0);
+          return sum + (existingAlloc.allocatedPercent || 0);
         }
         return sum;
       }, 0);
 
-      const totalPercentage = otherGoalsPercentage + alloc.percentage;
+      const totalPercentage = otherGoalsPercentage + alloc.allocatedPercent;
       if (totalPercentage > 100) {
-        newErrors[account.id] = `Total allocation exceeds 100% (other goals: ${otherGoalsPercentage.toFixed(1)}%, this: ${alloc.percentage.toFixed(1)}%)`;
+        newErrors[account.id] = `Total allocation exceeds 100% (other goals: ${otherGoalsPercentage.toFixed(1)}%, this: ${alloc.allocatedPercent.toFixed(1)}%)`;
         continue;
       }
     }
@@ -199,7 +198,7 @@ export function EditAllocationModal({
 
       for (const account of accounts) {
         const alloc = allocations[account.id];
-        
+
         // Find existing allocation for this account (should always exist)
         const existingAlloc = existingAllocations.find(
           (a) => a.accountId === account.id
@@ -213,10 +212,8 @@ export function EditAllocationModal({
         // Update existing allocation record with new values
         updatedAllocations.push({
           ...existingAlloc,
-          allocationAmount: alloc?.amount || 0,
-          allocationPercentage: alloc?.percentage || 0,
-          percentAllocation: Math.round(alloc?.percentage || 0),
-          initAmount: alloc?.amount || existingAlloc.initAmount,
+          initialContribution: alloc?.allocationAmount || 0,
+          allocatedPercent: alloc?.allocatedPercent || 0,
           allocationDate: existingAlloc.allocationDate || allocationDate,
         });
       }
@@ -281,7 +278,7 @@ export function EditAllocationModal({
                       <td className="px-4 py-3">
                         <Input
                           type="number"
-                          value={alloc?.amount ?? ""}
+                          value={alloc?.allocationAmount ?? ""}
                           onChange={(e) =>
                             handleAmountChange(account.id, Number(e.target.value))
                           }
@@ -295,7 +292,7 @@ export function EditAllocationModal({
                       <td className="px-4 py-3">
                         <Input
                           type="number"
-                          value={alloc?.percentage ?? ""}
+                          value={alloc?.allocatedPercent ?? ""}
                           onChange={(e) =>
                             handlePercentageChange(account.id, Number(e.target.value))
                           }
@@ -334,12 +331,12 @@ export function EditAllocationModal({
             <div className="mt-2 space-y-1 text-sm text-blue-800">
               {accounts.map((account) => {
                 const alloc = allocations[account.id];
-                if (!alloc || (alloc.amount === 0 && alloc.percentage === 0)) return null;
+                if (!alloc || (alloc.allocationAmount === 0 && alloc.allocatedPercent === 0)) return null;
                 return (
                   <div key={account.id} className="flex justify-between">
                     <span>{account.name}:</span>
                     <span>
-                      {formatAmount(alloc.amount, "USD", false)} ({alloc.percentage.toFixed(1)}%)
+                      {formatAmount(alloc.allocationAmount, "USD", false)} ({alloc.allocatedPercent.toFixed(1)}%)
                     </span>
                   </div>
                 );

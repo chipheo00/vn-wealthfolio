@@ -34,7 +34,7 @@ export function AllocationModal({
   onSubmit,
 }: AllocationModalProps) {
   const [amount, setAmount] = useState<number>(currentAllocation?.allocationAmount || 0);
-  const [percentage, setPercentage] = useState<number>(currentAllocation?.allocationPercentage || 0);
+  const [percentage, setPercentage] = useState<number>(currentAllocation?.allocatedPercent || 0);
   const [allocationDate, setAllocationDate] = useState<string>(
     currentAllocation?.allocationDate || new Date().toISOString().split("T")[0]
   );
@@ -135,12 +135,9 @@ export function AllocationModal({
         id: currentAllocation?.id || `${goal.id}-${account.id}-${Date.now()}`,
         goalId: goal.id,
         accountId: account.id,
-        percentAllocation: Math.round(percentage), // Keep for backward compat
-        allocationAmount: amount,
-        allocationPercentage: percentage,
-        initAmount: currentAllocation?.initAmount || amount,
+        initialContribution: currentAllocation?.initialContribution || amount,
+        allocatedPercent: percentage,
         allocationDate,
-        startDate: allocationDate,
       };
 
       await onSubmit(allocation);

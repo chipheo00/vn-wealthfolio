@@ -67,15 +67,18 @@ pub struct NewGoal {
 #[serde(rename_all = "camelCase")]
 pub struct GoalsAllocation {
     pub id: String,
-    pub percent_allocation: i32, // DEPRECATED: kept for backward compatibility
     pub goal_id: String,
     pub account_id: String,
-    pub start_date: Option<String>, // DEPRECATED: use allocation_date instead
-    pub end_date: Option<String>, // DEPRECATED: use allocation_versions instead
-    pub init_amount: f64, // Fixed initial allocation amount
-    pub allocation_amount: f64, // Current allocated amount
+    #[serde(rename = "initialContribution")]
+    pub init_amount: f64, // Initial contribution amount at allocation start date
+    #[serde(rename = "allocatedPercent")]
     pub allocation_percentage: f64, // Allocation percentage (0-100)
     pub allocation_date: Option<String>, // When this allocation started
+    // DEPRECATED: kept for backward compatibility only
+    pub percent_allocation: i32,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub allocation_amount: f64,
 }
 
 #[derive(
@@ -98,7 +101,9 @@ pub struct GoalsAllocation {
 pub struct AllocationVersion {
     pub id: String,
     pub allocation_id: String,
+    #[serde(rename = "allocatedPercent")]
     pub allocation_percentage: f64,
+    #[serde(rename = "initialContribution")]
     pub allocation_amount: f64,
     pub version_start_date: String,
     pub version_end_date: Option<String>,

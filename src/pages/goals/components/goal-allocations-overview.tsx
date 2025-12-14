@@ -29,8 +29,8 @@ export function GoalAllocationsOverview({
   // Calculate totals per account
   const allocationTotals = accounts.map((account) => {
     const accountAllocations = allocations.filter((a) => a.accountId === account.id);
-    const totalAmount = accountAllocations.reduce((sum, a) => sum + a.allocationAmount, 0);
-    const totalPercentage = accountAllocations.reduce((sum, a) => sum + a.allocationPercentage, 0);
+    const totalAmount = accountAllocations.reduce((sum, a) => sum + a.initialContribution, 0);
+    const totalPercentage = accountAllocations.reduce((sum, a) => sum + a.allocatedPercent, 0);
     const currentValue = currentAccountValues.get(account.id) || 0;
     const unallocated = Math.max(0, currentValue - totalAmount);
 
@@ -120,7 +120,7 @@ export function GoalAllocationsOverview({
                       <span>{goal.title}</span>
                       <div className="flex items-center gap-4">
                         <span className="text-muted-foreground">
-                          ${alloc.allocationAmount.toFixed(2)} ({alloc.allocationPercentage.toFixed(1)}%)
+                          ${alloc.initialContribution.toFixed(2)} ({alloc.allocatedPercent.toFixed(1)}%)
                         </span>
                         {!readOnly && (
                           <Button

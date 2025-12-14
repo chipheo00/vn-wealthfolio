@@ -113,8 +113,8 @@ export function AllocationHistoryTable({
   const handleResetAllocation = async (allocation: GoalAllocation) => {
     const resetAllocation: GoalAllocation = {
       ...allocation,
-      allocationAmount: 0,
-      allocationPercentage: 0,
+      initialContribution: 0,
+      allocatedPercent: 0,
     };
     await onAllocationUpdated(resetAllocation);
     setAllocationToReset(null);
@@ -141,17 +141,22 @@ export function AllocationHistoryTable({
               {allocations.map((alloc) => {
                 const account = accounts.get(alloc.accountId);
                 const currentValue = currentAccountValues.get(alloc.accountId) || 0;
+                // Handle incomplete data or legacy field names
+                const initialContribution = alloc.initialContribution;
+                const allocatedPercent = alloc.allocatedPercent;
 
                 return (
                   <React.Fragment key={alloc.id}>
                     <tr className="border-b hover:bg-muted/50">
                       <td className="px-4 py-2">{account?.name}</td>
                       <td className="text-right px-4 py-2">
-                        {currencySymbol}{formatCurrency(alloc.allocationAmount)}
+                        {currencySymbol}{formatCurrency(initialContribution)}
                       </td>
-                      <td className="text-right px-4 py-2">{alloc.allocationPercentage.toFixed(1)}%</td>
+                      <td className="text-right px-4 py-2">
+                        {allocatedPercent.toFixed(1)}%
+                      </td>
                       <td className="text-right px-4 py-2 font-semibold">
-                        {currencySymbol}{formatCurrency(alloc.initAmount + (currentValue - alloc.initAmount) * (alloc.allocationPercentage / 100))}
+                        {currencySymbol}{formatCurrency(initialContribution + (currentValue - initialContribution) * (allocatedPercent / 100))}
                       </td>
                       <td className="text-center px-4 py-2 text-xs text-muted-foreground">
                         {alloc.allocationDate ? formatActivityDate(alloc.allocationDate) : "-"}
@@ -320,10 +325,10 @@ function AllocationVersionsTable({ versions, currencySymbol, formatCurrency }: {
                   {version.versionStartDate} to {endDate}
                 </td>
                 <td className="text-right px-3 py-2">
-                  {currencySymbol}{formatCurrency(version.allocationAmount)}
+                  {currencySymbol}{formatCurrency(version.initialContribution)}
                 </td>
                 <td className="text-right px-3 py-2">
-                  {version.allocationPercentage.toFixed(1)}%
+                  {version.allocatedPercent.toFixed(1)}%
                 </td>
               </tr>
             );

@@ -127,12 +127,9 @@ export function GoalForm({ defaultValues, onSuccess = () => undefined }: GoalFor
             id: `${createdGoal.id}-${account.id}-${Date.now()}`,
             goalId: createdGoal.id,
             accountId: account.id,
-            percentAllocation: 0,
-            allocationAmount: 0,
-            allocationPercentage: 0,
-            initAmount: 0,
+            initialContribution: 0,
+            allocatedPercent: 0,
             allocationDate,
-            startDate: allocationDate,
           }));
           
           saveAllocationsMutation.mutate(defaultAllocations);
