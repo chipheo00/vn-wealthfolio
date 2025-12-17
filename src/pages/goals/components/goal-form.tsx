@@ -29,7 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 import { newGoalSchema } from "@/lib/schemas";
-import { useGoalMutations } from "@/pages/goals/use-goal-mutations";
+import { useGoalMutations } from "@/pages/goals/hooks/use-goal-mutations";
 import { useAccounts } from "@/hooks/use-accounts";
 
 // Infer type from schema (input type = works with Date)

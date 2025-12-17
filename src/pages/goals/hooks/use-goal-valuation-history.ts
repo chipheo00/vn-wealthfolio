@@ -25,7 +25,7 @@ import {
   subYears,
 } from "date-fns";
 import { useMemo } from "react";
-import { calculateProjectedValue } from "./lib/goal-utils";
+import { calculateProjectedValue } from "../lib/goal-utils";
 
 export type TimePeriodOption = "weeks" | "months" | "years" | "all";
 

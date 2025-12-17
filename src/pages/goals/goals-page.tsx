@@ -11,8 +11,8 @@ import { useTranslation } from "react-i18next";
 import GoalsAllocations from "./components/goal-allocations";
 import { GoalEditModal } from "./components/goal-edit-modal";
 import { GoalItem } from "./components/goal-item";
-import { useGoalMutations } from "./use-goal-mutations";
-import { useGoalProgress } from "./use-goal-progress";
+import { useGoalMutations } from "./hooks/use-goal-mutations";
+import { useGoalProgress } from "./hooks/use-goal-progress";
 
 const GoalsPage = () => {
   const { t } = useTranslation("goals");

@@ -8,7 +8,7 @@ import type { AccountValuation, Goal, GoalAllocation } from "@/lib/types";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { parseISO } from "date-fns";
 import { useMemo } from "react";
-import { calculateProjectedValue, isGoalOnTrack } from "./lib/goal-utils";
+import { calculateProjectedValue, isGoalOnTrack } from "../lib/goal-utils";
 
 interface GoalProgress {
   goalId: string;

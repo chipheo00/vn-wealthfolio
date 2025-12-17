@@ -30,9 +30,9 @@ import {
   calculateProjectedValueByDate,
   isGoalOnTrackByDate,
 } from "./lib/goal-utils";
-import { useGoalMutations } from "./use-goal-mutations";
-import { useGoalProgress } from "./use-goal-progress";
-import { TimePeriodOption, useGoalValuationHistory } from "./use-goal-valuation-history";
+import { useGoalMutations } from "./hooks/use-goal-mutations";
+import { useGoalProgress } from "./hooks/use-goal-progress";
+import { TimePeriodOption, useGoalValuationHistory } from "./hooks/use-goal-valuation-history";
 
 export default function GoalDetailsPage() {
   const { t } = useTranslation("goals");
