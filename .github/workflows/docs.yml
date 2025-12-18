@@ -6,7 +6,7 @@ on:
       - main
       - develop
     paths:
-      - "docs/**"
+      - "docusaurus/**"
       - "src/**"
       - "src-tauri/**"
       - "src-server/**"
@@ -30,35 +30,35 @@ jobs:
       - name: Build documentation with Docker
         run: |
           docker build \
-            -f docs/Dockerfile.build \
-            -t docs-builder:latest \
+            -f docusaurus/Dockerfile.build \
+            -t docusaurus-builder:latest \
             --target=builder \
             --progress=plain \
             .
 
       - name: Extract build artifacts
         run: |
-          mkdir -p docs/build
+          mkdir -p docusaurus/build
           docker run --rm \
-            -v "$(pwd)/docs/build:/output" \
-            docs-builder:latest \
-            /bin/sh -c "cp -r /app/docs/build/* /output/"
-        
+            -v "$(pwd)/docusaurus/build:/output" \
+            docusaurus-builder:latest \
+            /bin/sh -c "cp -r /app/docusaurus/build/* /output/"
+
       - name: Check build output
         run: |
-          if [ ! -d "docs/build" ]; then
+          if [ ! -d "docusaurus/build" ]; then
             echo "Build directory not found!"
             exit 1
           fi
           echo "Documentation build successful"
-          du -sh docs/build
+          du -sh docusaurus/build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: docs-build
-          path: docs/build
+          path: docusaurus/build
           retention-days: 7
 
       - name: Deploy to GitHub Pages
@@ -66,7 +66,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/build
+          publish_dir: ./docusaurus/build
 
   lint-docs:
     runs-on: ubuntu-latest
@@ -87,5 +87,5 @@ jobs:
       - name: Check markdown
         run: |
           echo "Checking markdown files..."
-          find docs -name "*.md" -type f | head -20
+          find docusaurus -name "*.md" -type f | head -20
           echo "Markdown check completed"

@@ -1,3 +1,9 @@
+---
+id: goal-page-logic
+title: Goal Page Business Logic
+sidebar_label: Goals Logic
+---
+
 # Goal Page Business Logic
 
 This document describes the business logic, formulas, and component interactions
@@ -6,13 +12,14 @@ for the Goals feature in Wealthfolio.
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Core Data Types](#core-data-types)
-3. [Goals Page (`goals-page.tsx`)](#goals-page)
-4. [GoalItem Component](#goalitem-component)
-5. [Goal Allocations Table](#goal-allocations-table)
-6. [Goal Form (Add/Edit)](#goal-form)
-7. [Key Formulas](#key-formulas)
-8. [Business Rules](#business-rules)
+2. [User Flows](#user-flows)
+3. [Core Data Types](#core-data-types)
+4. [Goals Page (`goals-page.tsx`)](#goals-page)
+5. [GoalItem Component](#goalitem-component)
+6. [Goal Allocations Table](#goal-allocations-table)
+7. [Goal Form (Add/Edit)](#goal-form)
+8. [Key Formulas](#key-formulas)
+9. [Business Rules](#business-rules)
 
 ---
 
@@ -24,6 +31,71 @@ The Goals feature allows users to:
 - Allocate portions of their investment accounts toward specific goals
 - Track progress through contributed value calculations
 - Monitor if they're on/off track based on projected vs actual values
+
+## User Flows
+
+### 1. Create New Goal
+
+```mermaid
+graph TD
+    A[User] -->|Click 'Add Goal'| B(Goal Form Modal)
+    B -->|Enter| C[Title, Target Amount]
+    B -->|Optional| D[Start Date, Due Date, Target Return %]
+    C & D --> E{All Data Present?}
+    E -->|Yes| F[Auto-calculate Monthly Investment]
+    E -->|No| G[Wait for Input]
+    F --> H[User Submits]
+    H --> I[Validate Inputs]
+    I -->|Success| J[Create Goal in DB]
+    I -->|Error| B
+    J --> K[Refresh Goal List]
+```
+
+### 2. Manage Allocations
+
+This flow describes how users assign account funds to goals.
+
+```mermaid
+graph TD
+    A[User] -->|Open| B[Goal Details Page]
+    B -->|Click| C[Edit Allocations]
+    C --> D[Modal: List all Accounts]
+    D --> E{User Action}
+    E -->|Input %| F[Calculate Current Amount]
+    E -->|Input Amount| G[Calculate % based on Account Value]
+    F & G --> H[Update Remaining Balance Display]
+    H --> I{Total > 100%?}
+    I -->|Yes| J[Show Error / Disable Submit]
+    I -->|No| K[Enable Submit]
+    K -->|Submit| L[Update Allocations in DB]
+    L --> M[Recalculate Goal Progress]
+```
+
+### 3. Track Progress (Auto)
+
+How the system determines if a goal is "On Track".
+
+```mermaid
+sequenceDiagram
+    participant U as User Display
+    participant H as Hooks (useGoalProgress)
+    participant S as Store/DB
+
+    U->>H: Request Goal Data
+    H->>S: Fetch Goal & Allocations
+    H->>S: Fetch Latest Account Valuations
+    S-->>H: Return Data
+
+    rect rgb(200, 240, 200)
+        Note over H: Calculation Step
+        H->>H: Sum Contributed Values (Current Value)
+        H->>H: Calculate Projected Value (Compound Interest)
+        H->>H: Compare Current vs Projected
+    end
+
+    H-->>U: Return { progress, isOnTrack, status }
+    U->>U: Render Progress Bar & Status Badge
+```
 
 ### File Structure
 

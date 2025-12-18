@@ -12,13 +12,13 @@ RUN corepack enable && corepack prepare pnpm@9 --activate
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 
 # Install workspace dependencies (includes docs dependencies)
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Copy docs directory
-COPY docs ./docs
+COPY docusaurus ./docusaurus
 
 # Build documentation
-WORKDIR /app/docs
+WORKDIR /app/docusaurus
 
 # Step 1: Sync documentation content
 RUN node scripts/sync-docs.cjs
@@ -31,4 +31,4 @@ RUN NODE_OPTIONS="--max-old-space-size=4096" npx docusaurus build
 
 # Output stage - only the build artifacts
 FROM scratch AS output
-COPY --from=builder /app/docs/build /build
+COPY --from=builder /app/docusaurus/build /build

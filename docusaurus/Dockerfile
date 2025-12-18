@@ -13,7 +13,7 @@ COPY ./package.json ./
 COPY ./.npmrc ./
 
 # Install docs dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Copy docs content
 COPY . ./
@@ -22,11 +22,11 @@ COPY . ./
 RUN pnpm build
 
 # Expose port for documentation server
-EXPOSE 3000
+EXPOSE 3010
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3010/ || exit 1
 
 # Start the documentation server
-CMD ["pnpm", "serve"]
+CMD ["pnpm", "serve", "--port", "3010", "--host", "0.0.0.0"]

@@ -1,6 +1,6 @@
-# Wealthfolio Documentation
+# WealthVN Documentation
 
-This directory contains the Docusaurus-based documentation site for Wealthfolio,
+This directory contains the Docusaurus-based documentation site for WealthVN,
 built from source documentation and auto-generated API references.
 
 ## Overview
