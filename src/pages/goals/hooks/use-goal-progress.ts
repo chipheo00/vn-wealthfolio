@@ -1,6 +1,5 @@
 import { getGoalsAllocation } from "@/commands/goal";
 import { getHistoricalValuations } from "@/commands/portfolio";
-import { getMonthsDiff } from "@/lib/date-utils";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useLatestValuations } from "@/hooks/use-latest-valuations";
 import { QueryKeys } from "@/lib/query-keys";
@@ -8,7 +7,7 @@ import type { AccountValuation, Goal, GoalAllocation } from "@/lib/types";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { parseISO } from "date-fns";
 import { useMemo } from "react";
-import { calculateProjectedValue, isGoalOnTrack } from "../lib/goal-utils";
+import { calculateProjectedValueByDate, isGoalOnTrack } from "../lib/goal-utils";
 
 interface GoalProgress {
   goalId: string;
@@ -130,7 +129,7 @@ export function useGoalProgress(goals: Goal[] | undefined) {
             startAccountValue = historyMap.get(`${alloc.accountId}|${baselineDate}`) ?? 0;
         }
 
-        // If we have current valuation, calculate growth
+        // If we have current valuation, calculate allocated value (includes initial contribution + growth)
         if (currentAccountValuation) {
           const currentAccountValue = currentAccountValuation.totalValue;
           const initialContribution = alloc.initialContribution ?? 0;
@@ -155,37 +154,34 @@ export function useGoalProgress(goals: Goal[] | undefined) {
         ? Math.min((currentValue / goal.targetAmount) * 100, 100)
         : 0;
 
-      // Calculate projected value at today's date based on goal start
+      // Calculate today's projected value using daily compounding for precision
+      // Projected value = sum of monthly contributions with compound interest (no initial contributions)
       const monthlyInvestment = goal.monthlyInvestment ?? 0;
       const annualReturnRate = goal.targetReturnRate ?? 0;
 
-      // Calculate months from goal start to today
-      let monthsFromStart = 0;
+      let projectedValue = 0;
       if (goal.startDate) {
         const goalStartDate = parseISO(goal.startDate);
         const today = new Date();
-        monthsFromStart = getMonthsDiff(goalStartDate, today);
+        const dailyInvestment = monthlyInvestment / 30; // Convert to daily equivalent
+        projectedValue = calculateProjectedValueByDate(
+          0, // startValue not used (initial contributions excluded from projection)
+          dailyInvestment,
+          annualReturnRate,
+          goalStartDate,
+          today,
+        );
       }
-
-      // Use totalInitialContribution as the starting principal for projection
-      const startValue = totalInitialContribution;
-
-      const projectedValue = calculateProjectedValue(
-        startValue,
-        monthlyInvestment,
-        annualReturnRate,
-        Math.max(0, monthsFromStart),
-      );
 
       progressMap.set(goal.id, {
         goalId: goal.id,
-        currentValue,
+        currentValue, // Today's actual value (includes initial contributions + growth)
         targetAmount: goal.targetAmount,
         progress,
         expectedProgress: 0,
-        isOnTrack: isGoalOnTrack(currentValue, projectedValue),
-        projectedValue,
-        startValue,
+        isOnTrack: isGoalOnTrack(currentValue, projectedValue), // Compare today's actual vs today's projected
+        projectedValue, // Today's projected value (from monthly contributions only)
+        startValue: totalInitialContribution, // Initial contributions sum (for reference)
       });
     });
 

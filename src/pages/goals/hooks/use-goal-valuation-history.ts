@@ -1,6 +1,5 @@
 import { getGoalsAllocation } from "@/commands/goal";
 import { getHistoricalValuations } from "@/commands/portfolio";
-import { getMonthsDiff } from "@/lib/date-utils";
 import { QueryKeys } from "@/lib/query-keys";
 import type { AccountValuation, Goal, GoalAllocation } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
@@ -25,7 +24,7 @@ import {
   subYears,
 } from "date-fns";
 import { useMemo } from "react";
-import { calculateProjectedValue } from "../lib/goal-utils";
+import { calculateProjectedValueByDate } from "../lib/goal-utils";
 
 export type TimePeriodOption = "weeks" | "months" | "years" | "all";
 
@@ -370,24 +369,23 @@ export function useGoalValuationHistory(
 
       // For each date, calculate the weighted sum using the same formula as allocation table
       // Formula: actualValue = initialContribution + (valueAtDate - valueAtAllocationStartDate) * (allocatedPercent)
+      // IMPORTANT: Always include initial contributions, even if valuation data is missing for that date
       Array.from(allDates)
         .sort()
         .forEach((dateStr) => {
           let totalValue = 0;
 
-          historicalValuations.forEach((valuations, accountId) => {
-            const allocationDetails = allocationDetailsMap.get(accountId);
-            if (!allocationDetails) return;
+          allocationDetailsMap.forEach((allocationDetails, accountId) => {
+            const { initialContribution, percentage, startDate } = allocationDetails;
+            
+            // Always include initial contribution
+            totalValue += initialContribution;
 
-            const valuation = valuations.find((v) => v.valuationDate === dateStr);
+            const valuations = historicalValuations.get(accountId);
+            const valuation = valuations?.find((v) => v.valuationDate === dateStr);
+            
             if (valuation) {
-              const { initialContribution, percentage, startDate } = allocationDetails;
-
               // Find the account value at the allocation start date
-              // If start date valuation is not found, we should assume 0 (account didn't exist)
-              // UNLESS we are sure it existed but data is missing.
-              // But definitively, fallback to initialContribution (currency amount) is WRONG for an Account Value.
-
               let startAccountValue = 0;
               const baselineDate = startDate || (goal.startDate ? goal.startDate.split('T')[0] : '');
 
@@ -406,8 +404,9 @@ export function useGoalValuationHistory(
                 }
               }
 
-              const contributedValue = initialContribution + (valuation.totalValue - startAccountValue) * percentage;
-              totalValue += contributedValue;
+              const accountGrowth = valuation.totalValue - startAccountValue;
+              const allocatedGrowth = accountGrowth * percentage;
+              totalValue += allocatedGrowth;
             }
           });
 
@@ -452,14 +451,16 @@ export function useGoalValuationHistory(
     // Build chart data points
     return dateIntervals.map((date) => {
       const dateStr = format(date, "yyyy-MM-dd");
-      const monthsFromStart = getMonthsDiff(goalStartDate, date);
 
-      // Calculate projected value (from goal start date)
-      const projected = calculateProjectedValue(
+      // Calculate projected value using daily compounding for precision
+      // Convert monthly investment to daily equivalent (monthly / 30)
+      const dailyInvestment = monthlyInvestment / 30;
+      const projected = calculateProjectedValueByDate(
         startValue,
-        monthlyInvestment,
+        dailyInvestment,
         annualReturnRate,
-        Math.max(0, monthsFromStart), // Don't project before goal start
+        goalStartDate,
+        date,
       );
 
       // Get actual value (only for dates up to today and after goal start)

@@ -3,10 +3,10 @@ import { format, isAfter, parseISO } from "date-fns";
 
 /**
  * Calculate projected value using compound interest formula with regular contributions (MONTHLY compounding)
- * 
+ *
  * IMPORTANT: Initial contributions are EXCLUDED from projection.
  * Projected value shows only growth from monthly contributions.
- * 
+ *
  * Formula: FV = PMT × [((1 + r)^n - 1) / r]
  *
  * @param startValue - Initial principal (starting allocation) - NOT USED, kept for backwards compatibility
@@ -59,19 +59,23 @@ export function getDaysDiff(startDate: Date, endDate: Date): number {
 
 /**
  * Calculate projected value using compound interest with DAILY compounding (more precise)
- * FV = PV × (1 + r)^n + PMT_daily × [((1 + r)^n - 1) / r]
+ * FV = PMT_daily × [((1 + r)^n - 1) / r]
+ *
+ * IMPORTANT: Initial contributions are EXCLUDED from projection.
+ * Projected value shows only growth from monthly contributions (not initial allocations).
  *
  * Where daily investment is back-calculated to match target at goal due date.
  * For current date projections, uses the monthly-equivalent daily investment.
  *
- * @param startValue - Initial principal (starting allocation)
- * @param monthlyInvestment - Monthly contribution (used to derive daily)
+ * @param startValue - Initial principal (NOT USED, kept for backwards compatibility)
+ * @param dailyInvestment - Daily contribution amount (monthly / 30)
  * @param annualReturnRate - Annual return rate as percentage (e.g., 7 for 7%)
  * @param startDate - Goal start date
  * @param currentDate - Date to calculate projected value for
- * @returns Future value with daily compound interest
+ * @returns Future value from monthly contributions with daily compound interest
  */
 export function calculateProjectedValueByDate(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   startValue: number,
   dailyInvestment: number,
   annualReturnRate: number,
@@ -80,19 +84,20 @@ export function calculateProjectedValueByDate(
 ): number {
   const daysFromStart = getDaysDiff(startDate, currentDate);
 
-  if (daysFromStart <= 0) return startValue;
+  if (daysFromStart <= 0) return 0;
 
   const dailyRate = annualReturnRate / 100 / 365;
 
   if (dailyRate === 0) {
-    return startValue + dailyInvestment * daysFromStart;
+    // No return: just sum of contributions
+    return dailyInvestment * daysFromStart;
   }
 
+  // Compound interest only from daily contributions
   const compoundFactor = Math.pow(1 + dailyRate, daysFromStart);
-  const futurePV = startValue * compoundFactor;
   const futureContributions = dailyInvestment * ((compoundFactor - 1) / dailyRate);
 
-  return futurePV + futureContributions;
+  return futureContributions;
 }
 
 /**
@@ -148,12 +153,12 @@ export function calculateDailyInvestment(
 }
 
 /**
- * Determines if a goal is on track by comparing actual vs projected value
- * On track: currentValue >= projectedValue (at current time)
- * Off track: currentValue < projectedValue (at current time)
+ * Determines if a goal is on track by comparing today's actual value vs today's projected value
+ * On track: todayActualValue >= todayProjectedValue
+ * Off track: todayActualValue < todayProjectedValue
  *
- * @param currentValue - Current actual value of the goal
- * @param projectedValue - Projected value at current date
+ * @param currentValue - Today's actual value of the goal (from accounts)
+ * @param projectedValue - Today's projected value (calculated from monthly contributions)
  * @returns true if on track, false if off track
  */
 export function isGoalOnTrack(currentValue: number, projectedValue: number): boolean {
