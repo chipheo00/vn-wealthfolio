@@ -29,12 +29,6 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
   currentAccountValues = new Map(),
   currency = "USD",
 }) => {
-  console.log("[GoalsAllocations DEBUG]", {
-    currentAccountValues: Object.fromEntries(currentAccountValues),
-    allocations: existingAllocations,
-    allAllocations,
-    currency,
-  });
   const { t } = useTranslation("goals");
   const [allocations, setAllocations] = useState<GoalAllocation[]>(existingAllocations || []);
   const [totalAllocations, setTotalAllocations] = useState<Record<string, number>>({});
@@ -125,12 +119,11 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
                     Unallocated
                   </td>
                   {accounts.map((account) => {
-                    const remainingPercent = Math.max(0, 100 - totalAllocations[account.id]);
+                    const remainingPercent = Math.max(0, 100 - (totalAllocations[account.id] || 0));
                     const currentValue = currentAccountValues.get(account.id) || 0;
-                    const totalAllocated = allocations.reduce((sum, alloc) => {
-                      return alloc.accountId === account.id ? sum + (alloc.initialContribution || 0) : sum;
-                    }, 0);
-                    const remainingValue = Math.max(0, currentValue - totalAllocated);
+                    // Unallocated value = current account value × (unallocated percentage / 100)
+                    // If 100% is allocated, unallocated value = 0
+                    const remainingValue = currentValue * (remainingPercent / 100);
                     return (
                       <td
                         key={account.id}
@@ -158,12 +151,11 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
                     </div>
                   </td>
                   {accounts.map((account) => {
-                    const remainingPercent = Math.max(0, 100 - totalAllocations[account.id]);
+                    const remainingPercent = Math.max(0, 100 - (totalAllocations[account.id] || 0));
                     const currentValue = currentAccountValues.get(account.id) || 0;
-                    const totalAllocated = allocations.reduce((sum, alloc) => {
-                      return alloc.accountId === account.id ? sum + (alloc.initialContribution || 0) : sum;
-                    }, 0);
-                    const remainingValue = Math.max(0, currentValue - totalAllocated);
+                    // Unallocated value = current account value × (unallocated percentage / 100)
+                    // If 100% is allocated, unallocated value = 0
+                    const remainingValue = currentValue * (remainingPercent / 100);
                     return (
                       <td key={account.id} className="text-muted-foreground border-t border-l px-4 py-2 text-right text-xs">
                         <div className="flex flex-col items-end gap-1">

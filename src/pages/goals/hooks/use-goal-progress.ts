@@ -70,7 +70,7 @@ function getTodayString(): string {
  */
 function calculateAllocationValue(
   allocation: GoalAllocation,
-  goal: Goal,
+  _goal: Goal,
   currentValuation: AccountValuation | undefined,
   startAccountValue: number
 ): number | null {
@@ -137,7 +137,7 @@ function buildGoalProgressMap(
       }
     });
 
-    const progress = goal.targetAmount > 0 
+    const progress = goal.targetAmount > 0
       ? Math.min((currentValue / goal.targetAmount) * 100, 100)
       : 0;
 
@@ -205,8 +205,31 @@ export function useGoalProgress(goals: Goal[] | undefined) {
     queries: requiredHistory.map(({ accountId, date }) => ({
       queryKey: ["historicalValuation", accountId, date],
       queryFn: async () => {
-        const vals = await getHistoricalValuations(accountId, date, date);
-        return vals?.[0]?.totalValue ?? 0;
+        // Fetch valuations from the baseline date to 7 days after
+        // This helps find the closest available valuation if exact date doesn't exist
+        const endDate = new Date(date);
+        endDate.setDate(endDate.getDate() + 7);
+        const endDateStr = endDate.toISOString().split("T")[0];
+
+        const vals = await getHistoricalValuations(accountId, date, endDateStr);
+
+        if (!vals || vals.length === 0) {
+          // If no valuations found in range, return 0 (same as before)
+          return 0;
+        }
+
+        // Find valuation at exact date first
+        const exactMatch = vals.find(v => v.valuationDate === date);
+        if (exactMatch) {
+          return exactMatch.totalValue;
+        }
+
+        // Fallback: use the earliest available valuation in the range
+        // This matches the chart's fallback behavior
+        const sortedVals = [...vals].sort((a, b) =>
+          a.valuationDate.localeCompare(b.valuationDate)
+        );
+        return sortedVals[0]?.totalValue ?? 0;
       },
       staleTime: 1000 * 60 * 60, // 1 hour cache
     })),

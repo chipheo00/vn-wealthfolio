@@ -7,10 +7,10 @@ import { QueryKeys } from "@/lib/query-keys";
 import type { Goal, GoalAllocation } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatedToggleGroup, Button, formatAmount, Icons, Page, Skeleton } from "@wealthvn/ui";
-import { useState } from "react";
+import { parseISO } from "date-fns";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { parseISO } from "date-fns";
 import {
   Area,
   AreaChart,
@@ -25,14 +25,14 @@ import { AllocationHistoryTable } from "./components/allocation-history-table";
 import { EditAllocationsModal } from "./components/edit-allocations-modal";
 import GoalsAllocations from "./components/goal-allocations";
 import { GoalEditModal } from "./components/goal-edit-modal";
+import { useGoalMutations } from "./hooks/use-goal-mutations";
+import { useGoalProgress } from "./hooks/use-goal-progress";
+import { TimePeriodOption, useGoalValuationHistory } from "./hooks/use-goal-valuation-history";
 import {
   calculateDailyInvestment,
   calculateProjectedValueByDate,
   isGoalOnTrackByDate,
 } from "./lib/goal-utils";
-import { useGoalMutations } from "./hooks/use-goal-mutations";
-import { useGoalProgress } from "./hooks/use-goal-progress";
-import { TimePeriodOption, useGoalValuationHistory } from "./hooks/use-goal-valuation-history";
 
 export default function GoalDetailsPage() {
   const { t } = useTranslation("goals");
@@ -80,8 +80,43 @@ export default function GoalDetailsPage() {
     { value: "all" as const, label: t("details.chart.periods.all") },
   ];
 
-  // Use the new hook for chart data
-  const { chartData, isLoading: isChartLoading } = useGoalValuationHistory(goal, timePeriod);
+  // Get startValue from goalProgress for chart projection consistency
+  const chartStartValue = goalProgress?.startValue ?? 0;
+
+  // Calculate projectedFutureValue early so we can pass it to the chart hook
+  // This ensures the chart's final point matches the Overview's "Projected Future Value"
+  const chartProjectedFutureValue = useMemo(() => {
+    if (!goal || !goal.startDate || !goal.dueDate) return undefined;
+
+    const startDate = parseISO(goal.startDate);
+    const dueDate = parseISO(goal.dueDate);
+    const startValue = chartStartValue;
+    const annualReturnRate = goal.targetReturnRate ?? 0;
+
+    // Back-calculate daily investment to match target at due date
+    const dailyInvestment = calculateDailyInvestment(
+      startValue,
+      goal.targetAmount,
+      annualReturnRate,
+      startDate,
+      dueDate,
+    );
+
+    // Get projected value at due date
+    return calculateProjectedValueByDate(
+      startValue,
+      dailyInvestment,
+      annualReturnRate,
+      startDate,
+      dueDate,
+    );
+  }, [goal, chartStartValue]);
+
+  // Use the new hook for chart data - pass startValue and projectedFutureValue for consistency
+  const { chartData, isLoading: isChartLoading } = useGoalValuationHistory(goal, timePeriod, {
+    startValue: chartStartValue,
+    projectedFutureValue: chartProjectedFutureValue,
+  });
 
   if (isGoalsLoading || isAllocationsLoading) {
     return (
@@ -101,20 +136,34 @@ export default function GoalDetailsPage() {
     );
   }
 
-  // Get actual values from hook instead of mocked data
-  const currentAmount = goalProgress?.currentValue ?? 0;
-  const progress = goalProgress?.progress ?? 0;
+  // Get actual values from hook - but prefer chart's actual value for consistency with chart display
+  let currentAmount = goalProgress?.currentValue ?? 0;
+
+  // Use the chart's latest actual value as the source of truth for "Current Progress"
+  // This ensures the Overview matches what's shown on the chart's actual line
+  if (chartData && chartData.length > 0) {
+    // Find the latest point with an actual value (working backwards from the end)
+    for (let i = chartData.length - 1; i >= 0; i--) {
+      if (chartData[i].actual !== null) {
+        currentAmount = chartData[i].actual as number;
+        break;
+      }
+    }
+  }
+
+  // Recalculate progress based on the chart-consistent current amount
+  const progress = goal?.targetAmount && goal.targetAmount > 0
+    ? Math.min((currentAmount / goal.targetAmount) * 100, 100)
+    : 0;
 
   // Calculate projections using daily compounding for accuracy
   let projectedFutureValue = 0;
-  let projectedValueToday = 0;
   let onTrack = true;
 
   if (goal && goal.startDate && goal.dueDate && goalProgress) {
     const startDate = parseISO(goal.startDate);
     const dueDate = parseISO(goal.dueDate);
     const startValue = goalProgress.startValue ?? 0; // Initial principal (sum of initial contributions)
-    const monthlyInvestment = goal.monthlyInvestment ?? 0;
     const annualReturnRate = goal.targetReturnRate ?? 0;
 
     // Back-calculate daily investment to match target at due date
@@ -126,23 +175,14 @@ export default function GoalDetailsPage() {
       dueDate,
     );
 
-    // Get projected value at due date (should match target)
+    // For years/all views: Show projected value at goal due date
+    // For weeks/months views: Show projected value at last chart point (overridden below)
     projectedFutureValue = calculateProjectedValueByDate(
       startValue,
       dailyInvestment,
       annualReturnRate,
       startDate,
       dueDate,
-    );
-
-    // Get projected value at today's date
-    const today = new Date();
-    projectedValueToday = calculateProjectedValueByDate(
-      startValue,
-      dailyInvestment,
-      annualReturnRate,
-      startDate,
-      today,
     );
 
     // Determine if on track using daily precision
@@ -153,6 +193,15 @@ export default function GoalDetailsPage() {
       annualReturnRate,
       startDate,
     );
+  }
+
+  // For weeks/months views: Use the last chart point's projected value
+  // This makes the Overview's "Projected Future Value" match the chart's last point
+  if ((timePeriod === "weeks" || timePeriod === "months") && chartData && chartData.length > 0) {
+    const lastChartPoint = chartData[chartData.length - 1];
+    if (lastChartPoint.projected !== null) {
+      projectedFutureValue = lastChartPoint.projected;
+    }
   }
 
   const actualColor = onTrack ? "var(--chart-actual-on-track)" : "var(--chart-actual-off-track)";
@@ -470,7 +519,22 @@ export default function GoalDetailsPage() {
               )
             }
             currentAccountValues={currentAccountValuesFromValuations}
-            getAllocationValue={getAllocationValue}
+            getAllocationValue={(allocationId) => {
+              // Use chart-consistent values for "Contributed Value"
+              // This ensures the table matches the chart's actual value line
+              const allocation = allocations?.find(a => a.id === allocationId);
+              if (!allocation) return getAllocationValue(allocationId);
+
+              // Get total allocation percentage for this goal to distribute proportionally
+              const goalAllocations = allocations?.filter(a => a.goalId === id) || [];
+              const totalPercent = goalAllocations.reduce((sum, a) => sum + (a.allocatedPercent || 0), 0);
+
+              if (totalPercent === 0) return getAllocationValue(allocationId);
+
+              // Distribute the chart's currentAmount proportionally based on allocation percentage
+              const allocationShare = (allocation.allocatedPercent || 0) / totalPercent;
+              return currentAmount * allocationShare;
+            }}
             onAllocationUpdated={async (allocation) => {
               await updateAllocationMutation.mutateAsync(allocation);
             }}

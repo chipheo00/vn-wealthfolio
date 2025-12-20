@@ -25,7 +25,7 @@ import {
   subYears,
 } from "date-fns";
 import { useMemo } from "react";
-import { calculateProjectedValueByDate, calculateDailyInvestment } from "../lib/goal-utils";
+import { calculateDailyInvestment, calculateProjectedValueByDate } from "../lib/goal-utils";
 
 // ============ TYPES ============
 export type TimePeriodOption = "weeks" | "months" | "years" | "all";
@@ -33,7 +33,7 @@ export type TimePeriodOption = "weeks" | "months" | "years" | "all";
 export interface GoalChartDataPoint {
   date: string;
   dateLabel: string;
-  projected: number;
+  projected: number | null;
   actual: number | null;
 }
 
@@ -41,6 +41,11 @@ export interface UseGoalValuationHistoryResult {
   chartData: GoalChartDataPoint[];
   isLoading: boolean;
   error: Error | null;
+}
+
+export interface UseGoalValuationHistoryOptions {
+  startValue?: number; // Initial principal (sum of initial contributions)
+  projectedFutureValue?: number; // The projected value at goal due date (from Overview)
 }
 
 interface DateRange {
@@ -75,6 +80,8 @@ function getDisplayCounts(period: Exclude<TimePeriodOption, "all">): { past: num
 
 /**
  * Calculate display date range centered around today
+ * For weeks/months: Always center around today, but clamp end to goalDueDate
+ * For years/all: Constrain to goal boundaries
  */
 function calculateDisplayDateRange(period: TimePeriodOption, goalStartDate: Date, goalDueDate: Date): DateRange {
   const today = startOfDay(new Date());
@@ -102,9 +109,24 @@ function calculateDisplayDateRange(period: TimePeriodOption, goalStartDate: Date
       break;
   }
 
-  // Constrain to goal boundaries
-  if (isBefore(displayStart, goalStartDate)) displayStart = goalStartDate;
-  if (isAfter(displayEnd, goalDueDate)) displayEnd = goalDueDate;
+  // For weeks and months: Keep displayStart as-is (centered around today)
+  // Only clamp displayEnd to goalDueDate
+  // For years: Constrain both to goal boundaries
+  if (period === "years") {
+    if (isBefore(displayStart, goalStartDate)) displayStart = goalStartDate;
+    if (isAfter(displayEnd, goalDueDate)) displayEnd = goalDueDate;
+  } else {
+    // For weeks/months: Only clamp the end date
+    if (isAfter(displayEnd, goalDueDate)) displayEnd = goalDueDate;
+    // But also ensure we don't start too far back if goal hasn't even started for a long time
+    // Keep at least some future view
+    if (isAfter(displayStart, goalDueDate)) {
+      // If displayStart is after goal due date, show from goal start to due date
+      displayStart = goalStartDate;
+      displayEnd = goalDueDate;
+    }
+  }
+
   if (isAfter(displayStart, displayEnd)) displayEnd = displayStart;
 
   return { displayStart, displayEnd };
@@ -176,7 +198,7 @@ function aggregateValuationsByPeriod(
       const year = date.getFullYear();
       for (const valDate of sortedDates) {
         const valDateObj = parseISO(valDate);
-        if (valDateObj.getFullYear() === year && 
+        if (valDateObj.getFullYear() === year &&
             (isBefore(valDateObj, new Date(year + "-12-31")) || isEqual(valDateObj, date))) {
           value = valuations.get(valDate) ?? null;
         }
@@ -216,8 +238,8 @@ function buildAllocationDetailsMap(
       detailsMap.set(alloc.accountId, {
         percentage: alloc.allocatedPercent / 100,
         initialContribution: alloc.initialContribution,
-        startDate: alloc.allocationDate 
-          ? alloc.allocationDate.split("T")[0] 
+        startDate: alloc.allocationDate
+          ? alloc.allocationDate.split("T")[0]
           : goalStartDate.split("T")[0],
       });
     }
@@ -334,53 +356,43 @@ function getActualValue(
 
 /**
  * Detect if a date is a special boundary (start or end of goal)
+ * Only returns a label if this date is explicitly a boundary date that was added separately
+ * For weeks/months: Don't show "End" label as the due date is added for projection purposes only
  */
 function getSpecialDateLabel(
   date: Date,
   goalStartDate: Date,
   goalDueDate: Date,
-  period: TimePeriodOption
+  period: TimePeriodOption,
+  isExplicitBoundaryDate: boolean = false
 ): string | null {
-  // Check if this is the exact start date (and not already at period boundary)
-  if (isEqual(format(date, "yyyy-MM-dd"), format(goalStartDate, "yyyy-MM-dd"))) {
-    const startEndOfPeriod = getEndOfPeriod(goalStartDate, period);
-    if (!isEqual(format(date, "yyyy-MM-dd"), format(startEndOfPeriod, "yyyy-MM-dd"))) {
-      return "Start";
-    }
+  // Only show special labels for explicitly added boundary dates
+  if (!isExplicitBoundaryDate) {
+    return null;
   }
 
-  // Check if this is the exact due date (and not already at period boundary)
-  if (isEqual(format(date, "yyyy-MM-dd"), format(goalDueDate, "yyyy-MM-dd"))) {
-    const dueEndOfPeriod = getEndOfPeriod(goalDueDate, period);
-    if (!isEqual(format(date, "yyyy-MM-dd"), format(dueEndOfPeriod, "yyyy-MM-dd"))) {
-      return "End";
-    }
+  const dateStr = format(date, "yyyy-MM-dd");
+  const startDateStr = format(goalStartDate, "yyyy-MM-dd");
+  const dueDateStr = format(goalDueDate, "yyyy-MM-dd");
+
+  if (dateStr === startDateStr) {
+    return "Start";
+  }
+
+  // Only show "End" label for years/all views
+  // For weeks/months, the due date is included for projection value but shouldn't have a special label
+  if (dateStr === dueDateStr && (period === "years" || period === "all")) {
+    return "End";
   }
 
   return null;
 }
 
-/**
- * Get the end-of-period date for a given date
- */
-function getEndOfPeriod(date: Date, period: TimePeriodOption): Date {
-  switch (period) {
-    case "weeks":
-      return endOfWeek(date);
-    case "months":
-      return endOfMonth(date);
-    case "years":
-    case "all":
-      return endOfYear(date);
-    default:
-      return endOfMonth(date);
-  }
-}
 
 /**
  * Add interpolation points between two dates to create smooth curves
  * This prevents straight line gaps between period boundaries and exact goal dates
- * 
+ *
  * @param lastPeriodDate - Last period-end date
  * @param nextDate - Next date (e.g., exact goal end)
  * @param maxGapDays - Maximum gap before adding interpolation (default: 2 days)
@@ -388,22 +400,60 @@ function getEndOfPeriod(date: Date, period: TimePeriodOption): Date {
  */
 function getInterpolationPoints(lastPeriodDate: Date, nextDate: Date, maxGapDays: number = 2): Date[] {
   const daysBetween = Math.floor((nextDate.getTime() - lastPeriodDate.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   // If gap is small (1-2 days), just connect directly (looks fine visually)
   if (daysBetween <= maxGapDays) {
     return [];
   }
-  
+
   // For larger gaps, add daily points to create smooth curve
   const interpolated: Date[] = [];
   let currentDate = addDays(lastPeriodDate, 1);
-  
+
   while (isBefore(currentDate, nextDate)) {
     interpolated.push(new Date(currentDate));
     currentDate = addDays(currentDate, 1);
   }
-  
+
   return interpolated;
+}
+
+/**
+ * Check if a date falls within the same period as any date in the intervals
+ * Used to avoid adding duplicate boundary dates
+ */
+function isInSamePeriodAsIntervals(date: Date, intervals: Date[], period: TimePeriodOption): boolean {
+  const dateStr = format(date, "yyyy-MM-dd");
+
+  for (const intervalDate of intervals) {
+    const intervalStr = format(intervalDate, "yyyy-MM-dd");
+
+    // Check exact match first
+    if (dateStr === intervalStr) {
+      return true;
+    }
+
+    // For yearly periods, check if they're in the same year
+    if (period === "years" || period === "all") {
+      if (date.getFullYear() === intervalDate.getFullYear()) {
+        return true;
+      }
+    }
+    // For monthly periods, check if they're in the same month
+    else if (period === "months") {
+      if (format(date, "yyyy-MM") === format(intervalDate, "yyyy-MM")) {
+        return true;
+      }
+    }
+    // For weekly periods, check if they're in the same week
+    else if (period === "weeks") {
+      if (format(date, "yyyy-ww") === format(intervalDate, "yyyy-ww")) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 // ============ HOOK ============
@@ -412,8 +462,10 @@ function getInterpolationPoints(lastPeriodDate: Date, nextDate: Date, maxGapDays
  */
 export function useGoalValuationHistory(
   goal: Goal | undefined,
-  period: TimePeriodOption = "months"
+  period: TimePeriodOption = "months",
+  options: UseGoalValuationHistoryOptions = {}
 ): UseGoalValuationHistoryResult {
+  const { startValue = 0, projectedFutureValue } = options;
   const {
     data: allocations,
     isLoading: isLoadingAllocations,
@@ -488,16 +540,19 @@ export function useGoalValuationHistory(
     const endDate = parseISO(dateRange.endDate);
     const today = startOfDay(new Date());
 
-    const isGoalInFuture = isAfter(goalStartDate, today);
     const goalDueDate = goal.dueDate ? parseISO(goal.dueDate) : endDate;
 
+    // For weeks/months: display is centered around today, only clamping end to goalDueDate
+    // For years/all: display is constrained to goal boundaries
     const { displayStart, displayEnd } = calculateDisplayDateRange(
       period,
-      isGoalInFuture ? goalStartDate : parseISO(dateRange.startDate),
+      goalStartDate, // Always pass actual goal start date for boundary reference
       goalDueDate
     );
 
+
     let dateIntervals = generateDateIntervals(displayStart, displayEnd, period);
+
 
     // For "all" view, add the exact due date if not already included
     if (period === "all" && dateIntervals.length > 0) {
@@ -509,20 +564,26 @@ export function useGoalValuationHistory(
       }
     }
 
-    // Add special boundary dates if they're not already period endpoints
+    // Track which dates are explicit boundary dates (for labeling)
+    const explicitBoundaryDates = new Set<string>();
+
+    // Add special boundary dates ONLY if they're not in the same period as existing intervals
     const specialDates: Date[] = [];
-    
-    // Add start date if it's not already in the intervals
-    if (!dateIntervals.some((d) => isEqual(format(d, "yyyy-MM-dd"), format(goalStartDate, "yyyy-MM-dd")))) {
+
+    // Add start date only if it's not in the same period as any existing interval
+    if (!isInSamePeriodAsIntervals(goalStartDate, dateIntervals, period)) {
       if (!isBefore(goalStartDate, displayStart) && !isAfter(goalStartDate, displayEnd)) {
         specialDates.push(goalStartDate);
+        explicitBoundaryDates.add(format(goalStartDate, "yyyy-MM-dd"));
       }
     }
 
-    // Add due date if it's not already in the intervals
-    if (!dateIntervals.some((d) => isEqual(format(d, "yyyy-MM-dd"), format(goalDueDate, "yyyy-MM-dd")))) {
+    // Add due date only if it's not in the same period as any existing interval
+    // AND it falls within the display range
+    if (!isInSamePeriodAsIntervals(goalDueDate, dateIntervals, period)) {
       if (!isBefore(goalDueDate, displayStart) && !isAfter(goalDueDate, displayEnd)) {
         specialDates.push(goalDueDate);
+        explicitBoundaryDates.add(format(goalDueDate, "yyyy-MM-dd"));
       }
     }
 
@@ -536,10 +597,10 @@ export function useGoalValuationHistory(
 
     // Add interpolation points only at the end (between last period and goal due date)
     // This prevents straight lines between period boundaries and exact goal dates
-    // WITHOUT creating too many intermediate points
-    if (dateIntervals.length > 0) {
+    // ONLY for "all" view - for other views, we don't want to add data beyond displayEnd
+    if (period === "all" && dateIntervals.length > 0) {
       const lastPeriodDate = dateIntervals[dateIntervals.length - 1];
-      
+
       // Only interpolate if goal due date is not already the last date
       if (!isEqual(format(lastPeriodDate, "yyyy-MM-dd"), format(goalDueDate, "yyyy-MM-dd"))) {
         const interpolation = getInterpolationPoints(lastPeriodDate, goalDueDate);
@@ -574,11 +635,12 @@ export function useGoalValuationHistory(
 
     // CRITICAL: Back-calculate daily investment to match target at due date
     // This ensures the projected line reaches the target amount at the goal's due date
+    // Now uses startValue (sum of initial contributions) for consistency with overview card
     let dailyInvestment = monthlyInvestment / 30;
-    
-    if (goal.targetAmount > 0 && monthlyInvestment > 0 && annualReturnRate >= 0) {
+
+    if (goal.targetAmount > 0 && annualReturnRate >= 0) {
       dailyInvestment = calculateDailyInvestment(
-        0, // startValue - not using initial contributions in projection
+        startValue, // Use the same startValue as overview card for consistency
         goal.targetAmount,
         annualReturnRate,
         goalStartDate,
@@ -586,30 +648,54 @@ export function useGoalValuationHistory(
       );
     }
 
-    return dateIntervals.map((date) => {
+    const result = dateIntervals.map((date) => {
       const dateStr = format(date, "yyyy-MM-dd");
-      const specialLabel = getSpecialDateLabel(date, goalStartDate, goalDueDate, period);
+      const isExplicitBoundary = explicitBoundaryDates.has(dateStr);
+      const specialLabel = getSpecialDateLabel(date, goalStartDate, goalDueDate, period, isExplicitBoundary);
+
+      // For dates before the goal start, projected value is null (no line rendered)
+      const isBeforeGoalStart = isBefore(date, goalStartDate);
+
+      // Check if this is the goal due date
+      const isGoalDueDate = format(date, "yyyy-MM-dd") === format(goalDueDate, "yyyy-MM-dd");
 
       // Calculate projected value
-      // Important: This does NOT include initial contributions, only projected growth from investments
-      const projected = calculateProjectedValueByDate(
-        0, // startValue not included
-        dailyInvestment,
-        annualReturnRate,
-        goalStartDate,
-        date
-      );
+      // For the goal due date: use projectedFutureValue from Overview if available
+      // This ensures the chart's final point matches the Overview's "Projected Future Value"
+      let projectedRaw: number | null;
+      if (isBeforeGoalStart) {
+        projectedRaw = null;
+      } else if (isGoalDueDate && projectedFutureValue !== undefined) {
+        // Use the exact value from Overview for the goal due date
+        projectedRaw = projectedFutureValue;
+      } else {
+        projectedRaw = calculateProjectedValueByDate(
+          startValue, // Include initial contributions for consistency
+          dailyInvestment,
+          annualReturnRate,
+          goalStartDate,
+          date
+        );
+      }
 
       const actual = getActualValue(date, today, goalStartDate, aggregatedActuals, latestActualValue, period);
 
       return {
         date: dateStr,
         dateLabel: formatDateLabel(date, period, specialLabel),
-        projected: Math.round(projected * 100) / 100,
+        projected: projectedRaw !== null ? Math.round(projectedRaw * 100) / 100 : null,
         actual: actual !== null ? Math.round(actual * 100) / 100 : null,
       };
     });
-  }, [goal, dateRange, period, allocations, historicalValuations]);
+
+    // Filter out data points where both projected and actual are null
+    // This avoids showing empty/zero data for dates before the goal starts
+    const filteredResult = result.filter(point =>
+      point.projected !== null || point.actual !== null
+    );
+
+    return filteredResult;
+  }, [goal, dateRange, period, allocations, historicalValuations, startValue, projectedFutureValue]);
 
   return {
     chartData,

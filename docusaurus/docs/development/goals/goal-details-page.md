@@ -31,13 +31,13 @@ The Goal Detail Page is designed to answer three key questions for the user:
 - Chart details:
   - Projected and actual value should be calculate by date.
   - Projected line:
-    - Show the projected value depend on period selected, and the compounding formula for date.
+    - Show the projected value depend on period selected, using the compounding formula for month.
     - In chart, projected line start on goal start date (initial value = daily investment) and end on goal due date(value ~ goal target amount).
     - In weeks period, the projected line will be show the projected value depend on period selected, and the compounding formula for date(end of weeks).
     - In months period, the projected line will be show the projected value depend on period selected, and the compounding formula for date(end of months).
     - In years period, the projected line will be show the projected value depend on period selected, and the compounding formula for date(end of years).
     - In all period, the projected line will be show the projected value depend on period selected, and the compounding formula for date(end of all).
-    - The last point's projected value on chart = the Projected future value in Overview card.
+    - The last point's projected value on chart = the Projected future value in Overview card and Projected future value should be changed following the time period selected.
   - Actual line:
     - Show the actual value depend on period selected.
     - In chart, the current week, month or year value should be equal Current Progress value in Overview card.
@@ -46,13 +46,12 @@ The Goal Detail Page is designed to answer three key questions for the user:
     - In months period, the actual line will be show the actual value depend on period selected(end of months).
     - In years period, the actual line will be show the actual value depend on period selected(end of years).
     - In all period, the actual line will be show the actual value depend on period selected(end of all).
-    - The last point's actual value on chart = the Actual future value in Overview card.
-  - If start date or end date is middle day of week, month, year -> add 1 more point (with label 'Start:DD-MM-YYYY' or 'End:DD-MM-YYYY') on time axis. For the end point of the goal, replace the last point on chart with the end point (label and value).
+    - The last point's actual value on chart = the Current Progress value in Overview card.
   - Chart progress status. We have status for goal is on track or off track. the logic is. if today's actual contributed value > projected value -> goal is on track. else goal is off track. The color of actual line will be green if goal is on track and red if goal is off track.
-  -
+
 - Overview card:
   - Target Amount: Large display of the goal's target.
-  - Current Progress: Percentage completion and current currency value.
+  - Current Progress: Percentage completion and current contributed value.
   - Metrics Grid: Compact 2x2 grid showing:
     - Monthly Investment (Calculate by goal duration, target amount, and return rate)
     - Target Return Rate (User input)

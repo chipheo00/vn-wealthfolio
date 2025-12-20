@@ -1,8 +1,8 @@
 import { getGoals, getGoalsAllocation } from "@/commands/goal";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useLatestValuations } from "@/hooks/use-latest-valuations";
-import { useSettingsContext } from "@/lib/settings-provider";
 import { QueryKeys } from "@/lib/query-keys";
+import { useSettingsContext } from "@/lib/settings-provider";
 import type { Goal, GoalAllocation } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { Button, EmptyPlaceholder, Icons, Page, Skeleton } from "@wealthvn/ui";
@@ -11,8 +11,8 @@ import { useTranslation } from "react-i18next";
 import GoalsAllocations from "./components/goal-allocations";
 import { GoalEditModal } from "./components/goal-edit-modal";
 import { GoalItem } from "./components/goal-item";
+import { GoalItemWithChart } from "./components/goal-item-with-chart";
 import { useGoalMutations } from "./hooks/use-goal-mutations";
-import { useGoalProgress } from "./hooks/use-goal-progress";
 
 const GoalsPage = () => {
   const { t } = useTranslation("goals");
@@ -28,12 +28,11 @@ const GoalsPage = () => {
 
   const { accounts } = useAccounts();
   const { settings } = useSettingsContext();
-  const { getGoalProgress } = useGoalProgress(goals);
-  
+
   // Fetch latest valuations for accounts
   const accountIds = accounts?.map(acc => acc.id) || [];
   const { latestValuations } = useLatestValuations(accountIds);
-  
+
   // Build current account values map from valuations (not from account.balance which may be stale)
   const currentAccountValuesFromValuations = new Map(
     (latestValuations || []).map(val => [val.accountId, val.totalValue])
@@ -108,17 +107,14 @@ const GoalsPage = () => {
             <div>
               <h2 className="text-foreground mb-6 text-xl font-bold">{t("goalsHeading")}</h2>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {goals.map((goal: Goal) => {
-                  const goalProgress = getGoalProgress(goal.id);
+              {goals.map((goal: Goal) => {
                   const goalAllocations = allocations?.filter((a) => a.goalId === goal.id) ?? [];
 
                   return (
-                    <GoalItem
+                    <GoalItemWithChart
                       key={goal.id}
                       goal={goal}
-                      currentValue={goalProgress?.currentValue ?? 0}
-                      progress={goalProgress?.progress ?? 0}
-                      isOnTrack={goalProgress?.isOnTrack ?? true}
+                      goals={goals}
                       allocations={goalAllocations}
                       totalAccountCount={accounts?.length ?? 0}
                       onEdit={handleEditGoal}

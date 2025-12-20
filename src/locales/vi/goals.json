@@ -108,6 +108,8 @@
       "noDataDescription": "Thêm phân bổ để xem dự phóng tăng trưởng",
       "projectedGrowth": "Tăng trưởng dự phóng",
       "actualValue": "Giá trị thực tế",
+      "startLabel": "Bắt đầu:{{date}}",
+      "endLabel": "Kết thúc:{{date}}",
       "periods": {
         "weeks": "Tuần",
         "months": "Tháng",
@@ -124,6 +126,7 @@
     "metrics": {
       "monthlyInvestment": "Đầu tư hàng tháng",
       "monthlyInvestmentDCA": "Đầu tư hàng tháng (DCA)",
+      "requiredMonthlyInvestment": "Đầu tư hàng tháng cần thiết",
       "notSet": "Chưa thiết lập",
       "targetReturnRate": "Tỷ suất sinh lời mục tiêu",
       "timeRemaining": "Thời gian còn lại",
@@ -132,6 +135,11 @@
     "allocations": {
       "title": "Phân bổ",
       "description": "Xem tỷ lệ phân bổ hiện tại cho mục tiêu này trên các tài khoản."
+    },
+    "allocationSettings": {
+      "title": "Cài đặt phân bổ",
+      "description": "Xem tỷ lệ phân bổ hiện tại cho mục tiêu này trên các tài khoản.",
+      "editButton": "Sửa phân bổ"
     }
   },
   "item": {

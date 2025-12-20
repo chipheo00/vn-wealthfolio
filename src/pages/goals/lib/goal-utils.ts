@@ -17,7 +17,7 @@ import { format, isAfter, parseISO } from "date-fns";
  */
 export function calculateProjectedValue(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  startValue: number,
+  _startValue: number,
   monthlyInvestment: number,
   annualReturnRate: number,
   monthsFromStart: number,
@@ -61,40 +61,47 @@ export function getDaysDiff(startDate: Date, endDate: Date): number {
  * Calculate projected value using compound interest with DAILY compounding (more precise)
  * FV = PMT_daily × [((1 + r)^n - 1) / r]
  *
- * IMPORTANT: Initial contributions are EXCLUDED from projection.
- * Projected value shows only growth from monthly contributions (not initial allocations).
+ * IMPORTANT: Initial contributions (startValue) are EXCLUDED from projection.
+ * The projected line shows only growth from daily/monthly contributions.
+ * This is intentional - the actual value line will show the full portfolio value
+ * including initial contributions.
  *
- * Where daily investment is back-calculated to match target at goal due date.
- * For current date projections, uses the monthly-equivalent daily investment.
+ * The daily investment is typically back-calculated using calculateDailyInvestment()
+ * which DOES account for startValue when determining how much daily contribution is needed.
  *
- * @param startValue - Initial principal (NOT USED, kept for backwards compatibility)
- * @param dailyInvestment - Daily contribution amount (monthly / 30)
+ * @param _startValue - Initial principal (NOT USED in calculation, kept for API compatibility)
+ * @param dailyInvestment - Daily contribution amount
  * @param annualReturnRate - Annual return rate as percentage (e.g., 7 for 7%)
  * @param startDate - Goal start date
  * @param currentDate - Date to calculate projected value for
- * @returns Future value from monthly contributions with daily compound interest
+ * @returns Future value from daily contributions only (excludes initial principal)
  */
 export function calculateProjectedValueByDate(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  startValue: number,
+  _startValue: number,
   dailyInvestment: number,
   annualReturnRate: number,
   startDate: Date,
   currentDate: Date,
 ): number {
+  // For dates before goal start, return 0 (no projection yet)
+  if (currentDate < startDate) return 0;
+
   const daysFromStart = getDaysDiff(startDate, currentDate);
 
-  if (daysFromStart <= 0) return 0;
+  // At goal start date, no contributions yet
+  if (daysFromStart === 0) return 0;
 
   const dailyRate = annualReturnRate / 100 / 365;
 
   if (dailyRate === 0) {
-    // No return: just sum of contributions
+    // No return: just sum of daily contributions
     return dailyInvestment * daysFromStart;
   }
 
-  // Compound interest only from daily contributions
+  // Compound factor: (1 + r)^n
   const compoundFactor = Math.pow(1 + dailyRate, daysFromStart);
+
+  // Future value of daily contributions only: PMT × [((1 + r)^n - 1) / r]
   const futureContributions = dailyInvestment * ((compoundFactor - 1) / dailyRate);
 
   return futureContributions;

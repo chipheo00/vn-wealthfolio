@@ -108,6 +108,8 @@
       "noDataDescription": "Add allocations to see growth projection",
       "projectedGrowth": "Projected Growth",
       "actualValue": "Actual Value",
+      "startLabel": "Start:{{date}}",
+      "endLabel": "End:{{date}}",
       "periods": {
         "weeks": "Weeks",
         "months": "Months",
@@ -124,6 +126,7 @@
     "metrics": {
       "monthlyInvestment": "Monthly Investment",
       "monthlyInvestmentDCA": "Monthly Investment (DCA)",
+      "requiredMonthlyInvestment": "Required Monthly",
       "notSet": "Not set",
       "targetReturnRate": "Target Return Rate",
       "timeRemaining": "Time Remaining",
@@ -132,6 +135,11 @@
     "allocations": {
       "title": "Allocations",
       "description": "View current allocation percentages for this goal across accounts."
+    },
+    "allocationSettings": {
+      "title": "Allocation Settings",
+      "description": "View current allocation percentages for this goal across accounts.",
+      "editButton": "Edit Allocations"
     }
   },
   "item": {
