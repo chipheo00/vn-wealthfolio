@@ -1,16 +1,17 @@
 import { logger } from "@/adapters";
+import { TradeForm } from "@/components/forms/trade-form";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Icons } from "@/components/ui/icons";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataSource } from "@/lib/constants";
@@ -25,7 +26,6 @@ import { HoldingsForm } from "./forms/holdings-form";
 import { IncomeForm } from "./forms/income-form";
 import { OtherForm } from "./forms/other-form";
 import { newActivitySchema, type NewActivityFormValues } from "./forms/schemas";
-import { TradeForm } from "@/components/forms/trade-form";
 
 export interface AccountSelectOption {
   value: string;
@@ -96,9 +96,7 @@ export function ActivityForm({
           return new Date(activity.date);
         })()
       : (() => {
-          const date = new Date();
-          date.setHours(16, 0, 0, 0); // Set to 4:00 PM which is market close time
-          return date;
+          return new Date();
         })(),
 
     currency: activity?.currency || "",

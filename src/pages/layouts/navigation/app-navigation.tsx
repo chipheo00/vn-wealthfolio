@@ -46,6 +46,11 @@ export function useNavigation() {
         href: "/dashboard",
       },
       {
+        icon: <Icons.Goal className="size-6" />,
+        title: t("navigation.goals"),
+        href: "/goals",
+      },
+      {
         icon: <Icons.Holdings className="size-6" />,
         title: t("navigation.holdings"),
         href: "/holdings",
@@ -54,11 +59,6 @@ export function useNavigation() {
         icon: <Icons.Performance className="size-6" />,
         title: t("navigation.performance"),
         href: "/performance",
-      },
-      {
-        icon: <Icons.Income className="size-6" />,
-        title: t("navigation.income"),
-        href: "/income",
       },
       {
         icon: <Icons.Trading className="size-6" />,

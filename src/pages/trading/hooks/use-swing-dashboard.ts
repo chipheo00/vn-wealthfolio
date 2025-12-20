@@ -41,7 +41,6 @@ export function useSwingDashboard(period: PeriodType) {
     }
   }, [period]);
 
-  // Get unique account IDs from selected activities for holdings data
   const accountIds = useMemo(() => {
     if (!activities) return [];
 
@@ -51,13 +50,13 @@ export function useSwingDashboard(period: PeriodType) {
           .filter((activity) => {
             return (
               preferences.selectedActivityIds.includes(activity.id) ||
-              (preferences.includeSwingTag && activity.hasSwingTag)
+              preferences.includeAllActivities
             );
           })
           .map((activity) => activity.accountId),
       ),
     ];
-  }, [activities, preferences.selectedActivityIds, preferences.includeSwingTag]);
+  }, [activities, preferences.selectedActivityIds, preferences.includeAllActivities]);
 
   const { data: holdings } = useHoldings({
     enabled: accountIds.length > 0,
@@ -164,15 +163,18 @@ export function useSwingDashboard(period: PeriodType) {
  */
 function filterSelectedActivities(activities: any[], preferences: any) {
   return activities.filter((activity) => {
+    // Include if user wants to include all activities
+    if (preferences.includeAllActivities) {
+      return true;
+    }
+
     // Include if explicitly selected
     if (preferences.selectedActivityIds.includes(activity.id)) {
       return true;
     }
 
-    // Include if swing tag is enabled and activity has swing tag
-    if (preferences.includeSwingTag && activity.hasSwingTag) {
-      return true;
-    }
+    // (Legacy behavior / Fallback): If includeSwingTag was deprecated but logic still checked, we would check it here.
+    // But since we fully replaced it, we just rely on includeAllActivities or explicit selection.
 
     return false;
   });

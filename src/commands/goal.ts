@@ -1,10 +1,31 @@
-import z from "zod";
-import { Goal, GoalAllocation } from "@/lib/types";
+import { getRunEnv, invokeTauri, invokeWeb, logger, RUN_ENV } from "@/adapters";
 import { newGoalSchema } from "@/lib/schemas";
-import { getRunEnv, RUN_ENV, invokeTauri, invokeWeb } from "@/adapters";
-import { logger } from "@/adapters";
+import { Goal, GoalAllocation } from "@/lib/types";
+import z from "zod";
 
-type NewGoal = z.infer<typeof newGoalSchema>;
+// Form schema type (uses Date for date fields)
+type NewGoalForm = z.infer<typeof newGoalSchema>;
+
+// API input type (uses string for date fields, matching the backend)
+export type NewGoalInput = Omit<NewGoalForm, "deadline"> & {
+  deadline?: string;
+};
+
+// Raw backend type including legacy fields
+interface RawGoalAllocation extends GoalAllocation {
+  percentAllocation?: number;
+  allocationAmount?: number;
+}
+
+// Helper to normalize allocations from backend
+const normalizeAllocation = (raw: RawGoalAllocation): GoalAllocation => {
+  return {
+    ...raw,
+    // Use new fields, fallback to legacy, fallback to 0
+    initialContribution: raw.initialContribution ?? raw.allocationAmount ?? 0,
+    allocatedPercent: raw.allocatedPercent ?? raw.percentAllocation ?? 0,
+  };
+};
 
 export const getGoals = async (): Promise<Goal[]> => {
   try {
@@ -22,7 +43,7 @@ export const getGoals = async (): Promise<Goal[]> => {
   }
 };
 
-export const createGoal = async (goal: NewGoal): Promise<Goal> => {
+export const createGoal = async (goal: NewGoalInput): Promise<Goal> => {
   const newGoal = {
     ...goal,
     yearlyContribution: 0,
@@ -98,16 +119,130 @@ export const updateGoalsAllocations = async (allocations: GoalAllocation[]): Pro
 
 export const getGoalsAllocation = async (): Promise<GoalAllocation[]> => {
   try {
+    let allocations: RawGoalAllocation[] = [];
     switch (getRunEnv()) {
       case RUN_ENV.DESKTOP:
-        return invokeTauri("load_goals_allocations");
+        allocations = await invokeTauri<RawGoalAllocation[]>("load_goals_allocations");
+        break;
       case RUN_ENV.WEB:
-        return invokeWeb("load_goals_allocations");
+        allocations = await invokeWeb<RawGoalAllocation[]>("load_goals_allocations");
+        break;
+      default:
+        throw new Error(`Unsupported`);
+    }
+    return allocations.map(normalizeAllocation);
+  } catch (error) {
+    logger.error("Error fetching goals allocations.");
+    throw error;
+  }
+};
+
+export interface GoalProgressSnapshot {
+  goalId: string;
+  goalTitle: string;
+  queryDate: string;
+  initValue: number;
+  currentValue: number;
+  growth: number;
+  allocationDetails: AllocationDetail[];
+}
+
+export interface AllocationDetail {
+  accountId: string;
+  percentAllocation: number;
+  accountValueAtGoalStart: number;
+  accountCurrentValue: number;
+  accountGrowth: number;
+  allocatedGrowth: number;
+}
+
+export const getGoalProgress = async (
+  goalId: string,
+  date?: string
+): Promise<GoalProgressSnapshot> => {
+  try {
+    switch (getRunEnv()) {
+      case RUN_ENV.DESKTOP:
+        return invokeTauri("get_goal_progress", { goalId, date });
+      case RUN_ENV.WEB:
+        return invokeWeb("get_goal_progress", { goalId, date });
       default:
         throw new Error(`Unsupported`);
     }
   } catch (error) {
-    logger.error("Error fetching goals allocations.");
+    logger.error("Error fetching goal progress.");
+    throw error;
+  }
+};
+
+export const getGoalAllocationsOnDate = async (
+  goalId: string,
+  date?: string
+): Promise<GoalAllocation[]> => {
+  try {
+    let allocations: RawGoalAllocation[] = [];
+    switch (getRunEnv()) {
+      case RUN_ENV.DESKTOP:
+        allocations = await invokeTauri<RawGoalAllocation[]>("get_goal_allocations_on_date", { goalId, date });
+        break;
+      case RUN_ENV.WEB:
+        allocations = await invokeWeb<RawGoalAllocation[]>("get_goal_allocations_on_date", { goalId, date });
+        break;
+      default:
+        throw new Error(`Unsupported`);
+    }
+    return allocations.map(normalizeAllocation);
+  } catch (error) {
+    logger.error("Error fetching goal allocations on date.");
+    throw error;
+  }
+};
+
+export interface AllocationConflictValidationRequest {
+  accountId: string;
+  startDate: string;
+  endDate: string;
+  percentAllocation: number;
+  excludeAllocationId?: string;
+}
+
+export interface AllocationConflictValidationResponse {
+  valid: boolean;
+  message: string;
+}
+
+export const validateAllocationConflict = async (
+  request: AllocationConflictValidationRequest
+): Promise<AllocationConflictValidationResponse> => {
+  try {
+    switch (getRunEnv()) {
+      case RUN_ENV.DESKTOP:
+        return invokeTauri("validate_allocation_conflict", { request });
+      case RUN_ENV.WEB:
+        return invokeWeb("validate_allocation_conflict", { request });
+      default:
+        throw new Error(`Unsupported`);
+    }
+  } catch (error) {
+    logger.error("Error validating allocation conflict.");
+    throw error;
+  }
+};
+
+export const deleteGoalAllocation = async (allocationId: string): Promise<void> => {
+  try {
+    switch (getRunEnv()) {
+      case RUN_ENV.DESKTOP:
+        await invokeTauri("delete_goal_allocation", { allocationId });
+        return;
+      case RUN_ENV.WEB:
+        await invokeWeb("delete_goal_allocation", { allocationId });
+        return;
+      default:
+        throw new Error(`Unsupported`);
+    }
+  } catch (error) {
+    logger.error("Error deleting goal allocation.");
     throw error;
   }
 };

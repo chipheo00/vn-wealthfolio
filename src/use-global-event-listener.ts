@@ -5,10 +5,10 @@ import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
 import {
-  listenMarketSyncStart,
-  listenPortfolioUpdateComplete,
-  listenPortfolioUpdateError,
-  listenPortfolioUpdateStart,
+    listenMarketSyncStart,
+    listenPortfolioUpdateComplete,
+    listenPortfolioUpdateError,
+    listenPortfolioUpdateStart,
 } from "@/commands/portfolio-listener";
 import { logger } from "./adapters";
 

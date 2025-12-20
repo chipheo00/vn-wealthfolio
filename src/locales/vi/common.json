@@ -57,6 +57,8 @@
     "annualized": "Hàng năm:",
     "other": "Khác",
     "na": "N/A",
+    "showMore": "Xem thêm",
+    "showLess": "Ẩn bớt",
     "accountCount_one": "{{count}} tài khoản",
     "accountCount_other": "{{count}} tài khoản"
   },

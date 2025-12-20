@@ -1,12 +1,72 @@
 {
   "title": "Goals",
-  "addGoal": "Add Goal",
+  "description": "Manage your financial goals and track your progress",
+  "addButton": "Add Goal",
+  "addGoalButton": "Add Goal",
+  "goalsHeading": "Your Goals",
+  "allocationsHeading": "Allocations",
+  "allocationsDescription": "Allocate your portfolio across different accounts to achieve your goals",
+  "notFound": "Goal not found",
+  "backToGoals": "Back to Goals",
   "form": {
     "title": "Goal Title",
     "description": "Description",
     "targetAmount": "Target Amount",
     "currentAmount": "Current Amount",
-    "targetDate": "Target Date"
+    "targetDate": "Target Date",
+    "addTitle": "Add Goal",
+    "updateTitle": "Edit",
+    "addDescription": "Create a new financial goal to track.",
+    "updateDescription": "Update your goal details.",
+    "fields": {
+      "title": {
+        "label": "Goal Title",
+        "placeholder": "e.g., Retirement, New House"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Add notes about your goal (optional)"
+      },
+      "targetAmount": {
+        "label": "Target Amount",
+        "placeholder": "0.00"
+      },
+      "startDate": {
+        "label": "Start Date",
+        "description": "When you started or plan to start this goal"
+      },
+      "dueDate": {
+        "label": "Due Date",
+        "description": "Target date to achieve your goal"
+      },
+      "investmentPlan": {
+        "title": "Investment Plan"
+      },
+      "monthlyInvestment": {
+        "label": "Monthly Investment (DCA)",
+        "placeholder": "e.g., 1,000",
+        "description": "Regular monthly investment amount for Dollar Cost Averaging"
+      },
+      "targetReturnRate": {
+        "label": "Target Return Rate",
+        "placeholder": "0",
+        "suffix": "% / year",
+        "hint": "Expected annual return rate for projection"
+      },
+      "isAchieved": {
+        "label": "Mark as Achieved"
+      }
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "add": "Add Goal",
+      "update": "Update Goal"
+    },
+    "postCreation": {
+      "success": "Goal created successfully!",
+      "description": "Would you like to allocate accounts to fund this goal?",
+      "addAllocations": "Add Allocations"
+    }
   },
   "progress": {
     "title": "Progress",
@@ -17,5 +77,217 @@
   "empty": {
     "title": "No goals yet",
     "description": "Set financial goals to track your progress"
+  },
+  "allocations": {
+    "tableHeader": "Account",
+    "totalRow": "Total",
+    "config": "Config Allocation",
+    "saveButton": "Save Allocations",
+    "toast": {
+      "errorTitle": "Total allocation cannot exceed 100%"
+    }
+  },
+  "operations": {
+    "openMenu": "Open menu",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "delete": {
+    "title": "Are you sure?",
+    "description": "This action cannot be undone. This will permanently delete your goal and remove your data from our servers.",
+    "button": "Delete"
+  },
+  "details": {
+    "title": "Goals Detail: {{title}}",
+    "description": "Review progress and configure your \"{{title}}\" investment goal.",
+    "editGoal": "Edit Goal",
+    "back": "Back",
+    "chart": {
+      "growthProjection": "Growth Projection",
+      "noData": "No data available",
+      "noDataDescription": "Add allocations to see growth projection",
+      "projectedGrowth": "Projected Growth",
+      "actualValue": "Actual Value",
+      "startLabel": "Start:{{date}}",
+      "endLabel": "End:{{date}}",
+      "periods": {
+        "weeks": "Weeks",
+        "months": "Months",
+        "years": "Years",
+        "all": "All Time"
+      }
+    },
+    "overview": {
+      "title": "Overview",
+      "description": "Description",
+      "targetAmount": "Target Amount",
+      "currentProgress": "Current Progress"
+    },
+    "metrics": {
+      "monthlyInvestment": "Monthly Investment",
+      "monthlyInvestmentDCA": "Monthly Investment (DCA)",
+      "requiredMonthlyInvestment": "Required Monthly",
+      "notSet": "Not set",
+      "targetReturnRate": "Target Return Rate",
+      "timeRemaining": "Time Remaining",
+      "projectedFutureValue": "Projected Future Value"
+    },
+    "allocations": {
+      "title": "Allocations",
+      "description": "View current allocation percentages for this goal across accounts."
+    },
+    "allocationSettings": {
+      "title": "Allocation Settings",
+      "description": "View current allocation percentages for this goal across accounts.",
+      "editButton": "Edit Allocations"
+    }
+  },
+  "item": {
+    "done": "Done",
+    "onTrack": "On track",
+    "offTrack": "Off track",
+    "completed": "Completed",
+    "ongoing": "Ongoing",
+    "current": "Current",
+    "target": "Target",
+    "notStarted": "Not Started",
+    "overdue": "Overdue",
+    "noAllocations": "No allocation",
+    "noAllocationsTooltip": "This goal has no account allocations yet",
+    "allocationTooltip": "{{percent}}% average allocation across {{count}} account(s)"
+  },
+  "time": {
+    "notSet": "Not set",
+    "invalidDate": "Invalid date",
+    "overdue": "Overdue",
+    "year": "Year",
+    "years": "Years",
+    "month": "Month",
+    "months": "Months",
+    "day": "Day",
+    "days": "Days",
+    "lessThanADay": "Less than a day"
+  },
+  "allocationPage": {
+    "title": "Goal Allocations",
+    "description": "Manage how your accounts fund each goal over time",
+    "view": "View",
+    "timeline": "Timeline",
+    "table": "Table"
+  },
+  "allocationTable": {
+    "goal": "Goal",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "peakTotal": "Peak Total",
+    "edit": "Edit"
+  },
+  "editModal": {
+    "title": "Edit Allocations: {{title}}",
+    "goalTimeline": "Goal Timeline",
+    "target": "Target",
+    "allocationsHeading": "Allocations",
+    "addAllocation": "Add Allocation",
+    "validation": "Validation",
+    "allValid": "All allocations valid",
+    "conflictsDetected": "Cannot save: {{count}} conflict(s) detected",
+    "cancel": "Cancel",
+    "save": "Save Changes"
+  },
+  "allocationRow": {
+    "account": "Account",
+    "percentage": "Percentage",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "selectAccount": "Select account",
+    "noConflicts": "No conflicts"
+  },
+  "conflict": {
+    "title": "Conflict: Total allocation exceeds 100%",
+    "during": "During {{start}} - {{end}}:",
+    "thisAllocation": "This allocation",
+    "total": "Total",
+    "exceedsBy": "(exceeds by {{amount}}%)",
+    "maxAvailable": "Max available",
+    "setToMax": "Set to {{value}}%"
+  },
+  "accountHealth": {
+    "title": "Account Health",
+    "allocated": "Allocated"
+  },
+  "prompt": {
+    "goalCreated": "Goal created!",
+    "addAllocationsQuestion": "Would you like to add account allocations now?",
+    "allocationsExplanation": "Allocations determine which accounts fund this goal and what percentage of each account's growth counts toward your goal.",
+    "skipForNow": "Skip for now",
+    "addAllocations": "Add Allocations"
+  },
+  "deleteAllocation": {
+    "title": "Delete Allocation",
+    "description": "Are you sure you want to delete this allocation? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "resetAllocation": {
+    "title": "Reset Allocation",
+    "description": "This will reset the allocation amount to 0 and percentage to 0%. This action cannot be undone.",
+    "confirm": "Reset"
+  },
+  "allocationHistoryTable": {
+    "currentAllocations": "Current Allocations",
+    "account": "Account",
+    "initialContribution": "Initial Contribution",
+    "allocatedRate": "Allocated Rate",
+    "contributedValue": "Contributed Value",
+    "actions": "Actions",
+    "reset": "Reset"
+  },
+  "singleAllocationModal": {
+    "editTitle": "Edit Allocation",
+    "createTitle": "Create Allocation",
+    "accountBalance": "Account Balance",
+    "unallocatedGrowth": "Unallocated Growth",
+    "initialContribution": "Initial Contribution",
+    "allocationPercentage": "Allocation Percentage (%)",
+    "projectedContributionValue": "Projected Contribution Value",
+    "initial": "Initial",
+    "growth": "Growth",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "errors": {
+      "amountNegative": "Amount cannot be negative",
+      "percentageRange": "Percentage must be between 0 and 100",
+      "percentageExceeds": "Percentage cannot exceed 100%",
+      "allocationRequired": "Allocation must be greater than 0"
+    },
+    "saveFailed": "Failed to save allocation",
+    "unknownError": "Unknown error",
+    "summary": "Allocation Summary",
+    "reviewAllocation": "Adjust allocation for this specific account",
+    "currentBalance": "Current Balance",
+    "unallocatedGrowth": "Unallocated Growth",
+    "amount": "Allocation Amount"
+  },
+  "editAllocationsModal": {
+    "saveFailed": "Failed to update allocations",
+    "unknownError": "Unknown error",
+    "cancel": "Cancel",
+    "updateAllocations": "Update Allocations",
+    "updating": "Updating...",
+    "loadingData": "Loading data...",
+    "account": "Account",
+    "unallocatedBalance": "Unallocated Balance",
+    "unallocatedPercent": "Unallocated Percent",
+    "initialContribution": "Initial Contribution",
+    "allocatedPercent": "Allocated Percent",
+    "summary": "Summary",
+    "amount": "Allocation Amount",
+    "available": "Available Balance",
+    "reviewAllocations": "Review and adjust your portfolio allocations",
+    "totalAllocated": "Total Allocated",
+    "accounts": "Accounts",
+    "errors": {
+      "amountNegative": "Amount cannot be negative"
+    }
   }
 }

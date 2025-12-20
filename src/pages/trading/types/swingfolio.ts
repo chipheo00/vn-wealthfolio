@@ -2,7 +2,7 @@ import type { ActivityDetails } from "@/lib/types";
 
 export interface SwingTradePreferences {
   selectedActivityIds: string[];
-  includeSwingTag: boolean;
+  includeAllActivities: boolean;
   selectedAccounts: string[];
   lotMatchingMethod: "FIFO" | "LIFO" | "AVERAGE";
   defaultDateRange: "1M" | "3M" | "6M" | "YTD" | "1Y" | "ALL" | "CUSTOM";

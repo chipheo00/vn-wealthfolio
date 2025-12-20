@@ -40,6 +40,10 @@
   "dashboard": {
     "heading": "Tổng quan Giao Dịch",
     "description": "Theo dõi hiệu suất và phân tích giao dịch của bạn",
+    "tabs": {
+      "dashboard": "Tổng quan",
+      "income": "Thu nhập"
+    },
     "selectActivities": "Chọn Giao Dịch",
     "settings": "Cài Đặt",
     "tryAgain": "Thử Lại",
@@ -109,8 +113,8 @@
     "close": "Đóng",
     "autoSelection": {
       "title": "Tùy Chọn Tự Động",
-      "includeSwingTag": "Tự động bao gồm các hoạt động được gắn thẻ \"swing\"",
-      "tagDescription": "Các hoạt động có \"swing\" trong bình luận sẽ được tự động bao gồm"
+      "includeAllActivities": "Tự động bao gồm các hoạt động mới",
+      "allActivitiesDescription": "Tất cả các hoạt động giao dịch mới sẽ được tự động chọn để phân tích"
     },
     "tradeMatching": {
       "title": "Khớp Lệnh Giao Dịch",

@@ -1,0 +1,36 @@
+# Multi-stage build for Wealth-VN Documentation CI
+# Optimized for GitHub Actions workflow
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+# Setup Docusaurus dependencies
+# We maintain a separate directory structure to match what scripts expect
+WORKDIR /app/docusaurus
+COPY docusaurus/package.json ./
+
+# Install dependencies strictly for docusaurus
+RUN pnpm install
+
+# Copy source files
+COPY docusaurus/ ./
+
+# Build documentation
+WORKDIR /app/docusaurus
+
+# Step 1: Sync documentation content
+RUN node scripts/sync-docs.cjs
+
+# Step 2: Generate API documentation
+RUN node scripts/generate-api-docs.cjs
+
+# Step 3: Build Docusaurus site
+RUN NODE_OPTIONS="--max-old-space-size=4096" npx docusaurus build
+
+# Output stage - only the build artifacts
+FROM scratch AS output
+COPY --from=builder /app/docusaurus/build /build

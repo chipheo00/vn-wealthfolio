@@ -1,25 +1,25 @@
-import { useSwingPreferences } from "../hooks/use-swing-preferences";
 import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Checkbox,
-  Icons,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
+    Button,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    Checkbox,
+    Icons,
+    Label,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
 } from "@wealthvn/ui";
 import { useTranslation } from "react-i18next";
+import { useSwingPreferences } from "../hooks/use-swing-preferences";
 
 interface SettingsSheetProps {
   open: boolean;
@@ -62,18 +62,18 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="include-swing-tag"
-                  checked={preferences.includeSwingTag}
+                  id="include-all-activities"
+                  checked={preferences.includeAllActivities}
                   onCheckedChange={(checked) =>
-                    updatePreferences({ includeSwingTag: checked as boolean })
+                    updatePreferences({ includeAllActivities: checked as boolean })
                   }
                 />
-                <Label htmlFor="include-swing-tag">
-                  {t("settings.autoSelection.includeSwingTag")}
+                <Label htmlFor="include-all-activities">
+                  {t("settings.autoSelection.includeAllActivities")}
                 </Label>
               </div>
               <p className="text-muted-foreground text-xs">
-                {t("settings.autoSelection.tagDescription")}
+                {t("settings.autoSelection.allActivitiesDescription")}
               </p>
             </CardContent>
           </Card>

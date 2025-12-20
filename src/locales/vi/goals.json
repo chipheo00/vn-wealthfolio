@@ -1,12 +1,72 @@
 {
   "title": "Mục tiêu",
-  "addGoal": "Thêm mục tiêu",
+  "description": "Quản lý các mục tiêu tài chính và theo dõi tiến độ của bạn",
+  "addButton": "Thêm mục tiêu",
+  "addGoalButton": "Thêm mục tiêu",
+  "goalsHeading": "Mục tiêu của bạn",
+  "allocationsHeading": "Phân bổ",
+  "allocationsDescription": "Phân bổ danh mục đầu tư của bạn qua các tài khoản khác nhau để đạt được mục tiêu",
+  "notFound": "Không tìm thấy mục tiêu",
+  "backToGoals": "Quay lại Mục tiêu",
   "form": {
     "title": "Tiêu đề mục tiêu",
     "description": "Mô tả",
     "targetAmount": "Số tiền mục tiêu",
     "currentAmount": "Số tiền hiện tại",
-    "targetDate": "Ngày mục tiêu"
+    "targetDate": "Ngày mục tiêu",
+    "addTitle": "Thêm mục tiêu",
+    "updateTitle": "Chỉnh sửa mục tiêu",
+    "addDescription": "Tạo một mục tiêu tài chính mới để theo dõi.",
+    "updateDescription": "Cập nhật chi tiết mục tiêu của bạn.",
+    "fields": {
+      "title": {
+        "label": "Tiêu đề mục tiêu",
+        "placeholder": "ví dụ: Nghỉ hưu, Mua nhà mới"
+      },
+      "description": {
+        "label": "Mô tả",
+        "placeholder": "Thêm ghi chú về mục tiêu của bạn (tùy chọn)"
+      },
+      "targetAmount": {
+        "label": "Số tiền mục tiêu",
+        "placeholder": "0.00"
+      },
+      "startDate": {
+        "label": "Ngày bắt đầu",
+        "description": "Khi bạn bắt đầu hoặc dự định bắt đầu mục tiêu này"
+      },
+      "dueDate": {
+        "label": "Ngày đến hạn",
+        "description": "Ngày mục tiêu để đạt được mục tiêu của bạn"
+      },
+      "investmentPlan": {
+        "title": "Kế hoạch đầu tư"
+      },
+      "monthlyInvestment": {
+        "label": "Đầu tư hàng tháng (DCA)",
+        "placeholder": "ví dụ: 1,000",
+        "description": "Số tiền đầu tư hàng tháng đều đặn cho Trung bình giá (DCA)"
+      },
+      "targetReturnRate": {
+        "label": "Tỷ suất sinh lời mục tiêu",
+        "placeholder": "0",
+        "suffix": "% / năm",
+        "hint": "Tỷ suất sinh lời hàng năm kỳ vọng cho dự phóng"
+      },
+      "isAchieved": {
+        "label": "Đánh dấu là đã đạt được"
+      }
+    },
+    "buttons": {
+      "cancel": "Hủy",
+      "add": "Thêm mục tiêu",
+      "update": "Cập nhật mục tiêu"
+    },
+    "postCreation": {
+      "success": "Tạo mục tiêu thành công!",
+      "description": "Bạn có muốn phân bổ tài khoản để tài trợ cho mục tiêu này không?",
+      "addAllocations": "Thêm phân bổ"
+    }
   },
   "progress": {
     "title": "Tiến độ",
@@ -17,5 +77,217 @@
   "empty": {
     "title": "Chưa có mục tiêu nào",
     "description": "Đặt mục tiêu tài chính để theo dõi tiến độ của bạn"
+  },
+  "allocations": {
+    "tableHeader": "Tài khoản",
+    "totalRow": "Tổng cộng",
+    "config": "Cấu hình phân bổ",
+    "saveButton": "Lưu phân bổ",
+    "toast": {
+      "errorTitle": "Tổng phân bổ không được vượt quá 100%"
+    }
+  },
+  "operations": {
+    "openMenu": "Mở menu",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa"
+  },
+  "delete": {
+    "title": "Bạn có chắc chắn không?",
+    "description": "Hành động này không thể hoàn tác. Điều này sẽ xóa vĩnh viễn mục tiêu của bạn và xóa dữ liệu của bạn khỏi máy chủ của chúng tôi.",
+    "button": "Xóa"
+  },
+  "details": {
+    "title": "Chi tiết mục tiêu: {{title}}",
+    "description": "Xem lại tiến độ và thiết lập mục tiêu đầu tư \"{{title}}\" của bạn.",
+    "editGoal": "Chỉnh sửa",
+    "back": "Quay lại",
+    "chart": {
+      "growthProjection": "Dự phóng tăng trưởng",
+      "noData": "Không có dữ liệu",
+      "noDataDescription": "Thêm phân bổ để xem dự phóng tăng trưởng",
+      "projectedGrowth": "Tăng trưởng dự phóng",
+      "actualValue": "Giá trị thực tế",
+      "startLabel": "Bắt đầu:{{date}}",
+      "endLabel": "Kết thúc:{{date}}",
+      "periods": {
+        "weeks": "Tuần",
+        "months": "Tháng",
+        "years": "Năm",
+        "all": "Toàn bộ"
+      }
+    },
+    "overview": {
+      "title": "Tổng quan",
+      "description": "Mô tả",
+      "targetAmount": "Số tiền mục tiêu",
+      "currentProgress": "Tiến độ hiện tại"
+    },
+    "metrics": {
+      "monthlyInvestment": "Đầu tư hàng tháng",
+      "monthlyInvestmentDCA": "Đầu tư hàng tháng (DCA)",
+      "requiredMonthlyInvestment": "Đầu tư hàng tháng cần thiết",
+      "notSet": "Chưa thiết lập",
+      "targetReturnRate": "Tỷ suất sinh lời mục tiêu",
+      "timeRemaining": "Thời gian còn lại",
+      "projectedFutureValue": "Giá trị tương lai dự phóng"
+    },
+    "allocations": {
+      "title": "Phân bổ",
+      "description": "Xem tỷ lệ phân bổ hiện tại cho mục tiêu này trên các tài khoản."
+    },
+    "allocationSettings": {
+      "title": "Cài đặt phân bổ",
+      "description": "Xem tỷ lệ phân bổ hiện tại cho mục tiêu này trên các tài khoản.",
+      "editButton": "Sửa phân bổ"
+    }
+  },
+  "item": {
+    "done": "Xong",
+    "onTrack": "Đúng tiến độ",
+    "offTrack": "Chậm tiến độ",
+    "completed": "Đã hoàn thành",
+    "ongoing": "Đang thực hiện",
+    "current": "Hiện tại",
+    "target": "Mục tiêu",
+    "notStarted": "Chưa bắt đầu",
+    "overdue": "Quá hạn",
+    "noAllocations": "Chưa phân bổ",
+    "noAllocationsTooltip": "Mục tiêu này chưa được phân bổ tài khoản",
+    "allocationTooltip": "{{percent}}% phân bổ trung bình từ {{count}} tài khoản"
+  },
+  "time": {
+    "notSet": "Chưa thiết lập",
+    "invalidDate": "Ngày không hợp lệ",
+    "overdue": "Quá hạn",
+    "year": "Năm",
+    "years": "Năm",
+    "month": "Tháng",
+    "months": "Tháng",
+    "day": "Ngày",
+    "days": "Ngày",
+    "lessThanADay": "Dưới một ngày"
+  },
+  "allocationPage": {
+    "title": "Phân bổ mục tiêu",
+    "description": "Quản lý cách các tài khoản đóng góp cho từng mục tiêu theo thời gian",
+    "view": "Xem",
+    "timeline": "Dòng thời gian",
+    "table": "Bảng"
+  },
+  "allocationTable": {
+    "goal": "Mục tiêu",
+    "startDate": "Ngày bắt đầu",
+    "endDate": "Ngày kết thúc",
+    "peakTotal": "Tổng cao nhất",
+    "edit": "Sửa"
+  },
+  "editModal": {
+    "title": "Sửa phân bổ: {{title}}",
+    "goalTimeline": "Thời gian mục tiêu",
+    "target": "Mục tiêu",
+    "allocationsHeading": "Phân bổ",
+    "addAllocation": "Thêm phân bổ",
+    "validation": "Xác nhận",
+    "allValid": "Tất cả phân bổ hợp lệ",
+    "conflictsDetected": "Không thể lưu: Phát hiện {{count}} xung đột",
+    "cancel": "Hủy",
+    "save": "Lưu thay đổi"
+  },
+  "allocationRow": {
+    "account": "Tài khoản",
+    "percentage": "Phần trăm",
+    "startDate": "Ngày bắt đầu",
+    "endDate": "Ngày kết thúc",
+    "selectAccount": "Chọn tài khoản",
+    "noConflicts": "Không có xung đột"
+  },
+  "conflict": {
+    "title": "Xung đột: Tổng phân bổ vượt quá 100%",
+    "during": "Trong khoảng {{start}} - {{end}}:",
+    "thisAllocation": "Phân bổ này",
+    "total": "Tổng",
+    "exceedsBy": "(vượt quá {{amount}}%)",
+    "maxAvailable": "Tối đa khả dụng",
+    "setToMax": "Đặt thành {{value}}%"
+  },
+  "accountHealth": {
+    "title": "Tình trạng tài khoản",
+    "allocated": "Đã phân bổ"
+  },
+  "prompt": {
+    "goalCreated": "Đã tạo mục tiêu!",
+    "addAllocationsQuestion": "Bạn có muốn thêm phân bổ tài khoản ngay bây giờ không?",
+    "allocationsExplanation": "Phân bổ xác định tài khoản nào đóng góp cho mục tiêu này và bao nhiêu phần trăm tăng trưởng của mỗi tài khoản được tính vào mục tiêu của bạn.",
+    "skipForNow": "Bỏ qua",
+    "addAllocations": "Thêm phân bổ"
+  },
+  "deleteAllocation": {
+    "title": "Xóa phân bổ",
+    "description": "Bạn có chắc chắn muốn xóa phân bổ này không? Hành động này không thể hoàn tác.",
+    "confirm": "Xóa"
+  },
+  "resetAllocation": {
+    "title": "Đặt lại phân bổ",
+    "description": "Thao tác này sẽ đặt lại số tiền phân bổ về 0 và tỷ lệ về 0%. Hành động này không thể hoàn tác.",
+    "confirm": "Đặt lại"
+  },
+  "allocationHistoryTable": {
+    "currentAllocations": "Phân bổ hiện tại",
+    "account": "Tài khoản",
+    "initialContribution": "Đóng góp ban đầu",
+    "allocatedRate": "Tỷ lệ phân bổ",
+    "contributedValue": "Giá trị đóng góp",
+    "actions": "Thao tác",
+    "reset": "Đặt lại"
+  },
+  "singleAllocationModal": {
+    "editTitle": "Sửa phân bổ",
+    "createTitle": "Tạo phân bổ",
+    "accountBalance": "Số dư tài khoản",
+    "unallocatedGrowth": "Tăng trưởng chưa phân bổ",
+    "initialContribution": "Đóng góp ban đầu",
+    "allocationPercentage": "Tỷ lệ phân bổ (%)",
+    "projectedContributionValue": "Giá trị đóng góp dự kiến",
+    "initial": "Ban đầu",
+    "growth": "Tăng trưởng",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "errors": {
+      "amountNegative": "Số tiền không được âm",
+      "percentageRange": "Tỷ lệ phải từ 0 đến 100",
+      "percentageExceeds": "Tỷ lệ không được vượt quá 100%",
+      "allocationRequired": "Phân bổ phải lớn hơn 0"
+    },
+    "saveFailed": "Không thể lưu phân bổ",
+    "unknownError": "Lỗi không xác định",
+    "summary": "Tóm tắt phân bổ",
+    "reviewAllocation": "Điều chỉnh phân bổ cho tài khoản này",
+    "currentBalance": "Số dư hiện tại",
+    "unallocatedGrowth": "Tăng trưởng chưa phân bổ",
+    "amount": "Số tiền phân bổ"
+  },
+  "editAllocationsModal": {
+    "saveFailed": "Không thể cập nhật phân bổ",
+    "unknownError": "Lỗi không xác định",
+    "cancel": "Hủy",
+    "updateAllocations": "Cập nhật phân bổ",
+    "updating": "Đang cập nhật...",
+    "loadingData": "Đang tải dữ liệu...",
+    "account": "Tài khoản",
+    "unallocatedBalance": "Số dư chưa phân bổ",
+    "unallocatedPercent": "Tỷ lệ chưa phân bổ",
+    "initialContribution": "Đóng góp ban đầu",
+    "allocatedPercent": "Tỷ lệ phân bổ",
+    "summary": "Tóm tắt",
+    "amount": "Số tiền",
+    "available": "Số dư khả dụng",
+    "reviewAllocations": "Xem xét và điều chỉnh phân bổ danh mục đầu tư",
+    "totalAllocated": "Tổng đã phân bổ",
+    "accounts": "Tài khoản",
+    "errors": {
+      "amountNegative": "Số tiền không được âm"
+    }
   }
 }

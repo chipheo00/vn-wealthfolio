@@ -269,18 +269,36 @@
       "fields": {
         "title": {
           "label": "Goal Name",
-          "placeholder": "Goal display title"
-        },
-        "description": {
-          "label": "Goal description",
-          "placeholder": "Goal short description"
+          "placeholder": "e.g., Buy a house, Retirement, Car..."
         },
         "targetAmount": {
-          "label": "Target amount",
-          "placeholder": "Target amount"
+          "label": "Target Amount",
+          "placeholder": "5,000,000,000"
+        },
+        "deadline": {
+          "label": "Target Date",
+          "placeholder": "Select target date"
+        },
+        "investmentPlan": {
+          "title": "Investment Plan",
+          "initialInvestment": "Initial Investment Amount",
+          "sourceAccount": "Source",
+          "sourceAccountPlaceholder": "Manual Entry",
+          "amount": "Amount"
+        },
+        "monthlyContribution": {
+          "label": "Monthly Investment (DCA)",
+          "placeholder": "10,000,000",
+          "hint": "Amount you plan to add to this goal each month."
+        },
+        "targetReturnRate": {
+          "label": "Expected Growth Rate",
+          "placeholder": "10",
+          "hint": "Based on your expected investment portfolio.",
+          "suffix": "%/year"
         },
         "isAchieved": {
-          "label": " Goal Achieved"
+          "label": "Goal Achieved"
         }
       },
       "buttons": {

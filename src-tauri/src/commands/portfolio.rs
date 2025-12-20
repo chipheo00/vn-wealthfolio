@@ -79,7 +79,7 @@ pub async fn get_historical_valuations(
     start_date: Option<String>,
     end_date: Option<String>,
 ) -> Result<Vec<DailyAccountValuation>, String> {
-    debug!("Get historical valuations for account: {}", account_id);
+
     //     // Parse optional dates into Option<NaiveDate>
     let from_date_opt: Option<chrono::NaiveDate> = start_date
         .map(|date_str| {

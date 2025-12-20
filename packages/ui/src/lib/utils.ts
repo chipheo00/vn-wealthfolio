@@ -76,9 +76,15 @@ export function formatPercent(value: number | null | undefined) {
 
 export function formatQuantity(quantity: string | number) {
   const numQuantity = parseFloat(String(quantity));
-  if (Number.isInteger(numQuantity)) {
-    return numQuantity.toString();
+  // Normalize to 6 decimal places to avoid floating-point precision artifacts
+  // (e.g., 2974.430000000001 becomes 2974.43)
+  const normalized = Math.round(numQuantity * 1000000) / 1000000;
+  
+  if (Number.isInteger(normalized)) {
+    return normalized.toString();
   } else {
-    return numQuantity.toFixed(6);
+    // Format with up to 6 decimals, then remove trailing zeros
+    // e.g., 9642.200000 -> 9642.2, 2974.430000 -> 2974.43
+    return normalized.toFixed(6).replace(/\.?0+$/, "");
   }
 }

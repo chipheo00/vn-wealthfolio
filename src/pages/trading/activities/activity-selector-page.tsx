@@ -1,30 +1,30 @@
-import { useSwingActivities } from "../hooks/use-swing-activities";
-import { useSwingPreferences } from "../hooks/use-swing-preferences";
+import { useDateFormatter } from "@/hooks/use-date-formatter";
+import { ActivityTypeBadge } from "@/pages/activity/components/activity-type-badge";
 import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Checkbox,
-  Icons,
-  Input,
-  Page,
-  PageContent,
-  PageHeader,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Skeleton,
+    Badge,
+    Button,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    Checkbox,
+    Icons,
+    Input,
+    Page,
+    PageContent,
+    PageHeader,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+    Skeleton,
 } from "@wealthvn/ui";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useDateFormatter } from "@/hooks/use-date-formatter";
-import { ActivityTypeBadge } from "@/pages/activity/components/activity-type-badge";
+import { useSwingActivities } from "../hooks/use-swing-activities";
+import { useSwingPreferences } from "../hooks/use-swing-preferences";
 
 export default function ActivitySelectorPage() {
   const { t } = useTranslation("trading");
@@ -39,11 +39,19 @@ export default function ActivitySelectorPage() {
   const { preferences, updatePreferences, isUpdating } = useSwingPreferences();
 
   // Initialize selected activities from preferences
+  // Initialize selected activities from preferences
   React.useEffect(() => {
-    if (preferences.selectedActivityIds.length > 0) {
+    if (preferences.includeAllActivities && activities) {
+      // If "Include All" is enabled, select all available activities
+      const allActivityIds = activities.map((a) => a.id);
+      setSelectedActivities(new Set(allActivityIds));
+    } else if (preferences.selectedActivityIds.length > 0) {
+      // Otherwise use the specific selection list
       setSelectedActivities(new Set(preferences.selectedActivityIds));
+    } else {
+        setSelectedActivities(new Set());
     }
-  }, [preferences.selectedActivityIds]);
+  }, [preferences.selectedActivityIds, preferences.includeAllActivities, activities]);
 
   // Get unique accounts for filter
   const accounts = useMemo(() => {

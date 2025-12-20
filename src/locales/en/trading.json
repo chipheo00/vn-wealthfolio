@@ -2,7 +2,7 @@
   "activitySelector": {
     "heading": "Select Activities",
     "description": "Choose which trading activities to include in your trading portfolio analysis",
-    "backToDashboard": "Back to Tradings",
+    "backToDashboard": "Back",
     "saveSelection": "Save",
     "savingSettings": "Saving settings...",
     "manualSelection": {
@@ -40,6 +40,10 @@
   "dashboard": {
     "heading": "Trading Dashboard",
     "description": "Track your trading performance and analytics",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "income": "Income"
+    },
     "selectActivities": "Select Activities",
     "settings": "Settings",
     "tryAgain": "Try Again",
@@ -109,8 +113,8 @@
     "close": "Close",
     "autoSelection": {
       "title": "Auto-Selection Options",
-      "includeSwingTag": "Automatically include activities tagged with \"swing\"",
-      "tagDescription": "Activities with \"swing\" in their comment will be automatically included"
+      "includeAllActivities": "Automatically include new activities",
+      "allActivitiesDescription": "All new trading activities will be automatically selected for analysis"
     },
     "tradeMatching": {
       "title": "Trade Matching",

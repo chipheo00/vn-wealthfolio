@@ -1,14 +1,14 @@
 import * as z from "zod";
-import { ActivityType, activityTypeSchema, accountTypeSchema } from "./constants";
-import { tryParseDate } from "./utils";
 import {
   isCashActivity,
-  isIncomeActivity,
   isCashTransfer,
-  isTradeActivity,
   isFeeActivity,
+  isIncomeActivity,
   isSplitActivity,
+  isTradeActivity,
 } from "./activity-utils";
+import { accountTypeSchema, ActivityType, activityTypeSchema } from "./constants";
+import { tryParseDate } from "./utils";
 
 export const importMappingSchema = z.object({
   accountId: z.string(),
@@ -37,7 +37,7 @@ export const newAccountSchema = z.object({
 
 export const newGoalSchema = z.object({
   id: z.string().uuid().optional(),
-  title: z.string(),
+  title: z.string().min(1, { message: "Please enter a goal name." }),
   description: z.string().optional(),
   targetAmount: z.coerce
     .number({
@@ -45,8 +45,21 @@ export const newGoalSchema = z.object({
       invalid_type_error: "Target amount must be a positive number.",
     })
     .min(0, { message: "Target amount must be a positive number." }),
-  yearlyContribution: z.number().optional(),
-  deadline: z.date().optional(),
+  targetReturnRate: z
+    .number({
+      invalid_type_error: "Return rate must be a number.",
+    })
+    .min(0, { message: "Return rate must be a positive number." })
+    .max(100, { message: "Return rate cannot exceed 100%." })
+    .optional(),
+  startDate: z.union([z.date(), z.string().datetime()]).optional(),
+  dueDate: z.union([z.date(), z.string().datetime()]).optional(),
+  monthlyInvestment: z.coerce
+    .number({
+      invalid_type_error: "Monthly investment must be a positive number.",
+    })
+    .min(0, { message: "Monthly investment must be a positive number." })
+    .optional(),
   isAchieved: z.boolean().optional(),
 });
 

@@ -3,13 +3,13 @@ import * as z from "zod";
 import { AccountType, ActivityType, DataSource, HoldingType } from "./constants";
 
 export {
-    AccountType,
-    ActivityType,
-    DataSource,
-    ExportDataType,
-    ExportedFileFormat,
-    HoldingType,
-    ImportFormat
+  AccountType,
+  ActivityType,
+  DataSource,
+  ExportDataType,
+  ExportedFileFormat,
+  HoldingType,
+  ImportFormat
 } from "./constants";
 
 export type { ImportRequiredField } from "./constants";
@@ -363,7 +363,11 @@ export interface Goal {
   title: string;
   description?: string;
   targetAmount: number;
+  targetReturnRate?: number;
   isAchieved?: boolean;
+  dueDate?: string;
+  monthlyInvestment?: number;
+  startDate?: string;
   allocations?: GoalAllocation[];
 }
 
@@ -371,7 +375,19 @@ export interface GoalAllocation {
   id: string;
   goalId: string;
   accountId: string;
-  percentAllocation: number;
+  initialContribution: number; // Initial contribution amount at allocation start date
+  allocatedPercent: number;
+  allocationDate?: string; // YYYY-MM-DD format
+}
+
+export interface AllocationVersion {
+  id: string;
+  allocationId: string;
+  allocatedPercent: number;
+  initialContribution: number;
+  versionStartDate: string;
+  versionEndDate?: string;
+  createdAt: string;
 }
 
 export interface GoalProgress {

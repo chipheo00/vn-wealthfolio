@@ -17,6 +17,7 @@ export const QueryKeys = {
   // Goals related keys
   GOALS: "goals",
   GOALS_ALLOCATIONS: "goals_allocations",
+  GOAL_VALUATION_HISTORY: "goal_valuation_history",
 
   // Settings related keys
   SETTINGS: "settings",

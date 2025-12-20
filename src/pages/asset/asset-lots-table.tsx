@@ -1,11 +1,11 @@
-import { DataTable, formatAmount, GainAmount, GainPercent } from "@wealthvn/ui";
+import { Card, CardContent } from "@/components/ui/card";
 import { DataTableColumnHeader } from "@/components/ui/data-table/data-table-column-header";
-import type { ColumnDef } from "@tanstack/react-table";
 import { Lot } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { useTranslation } from "react-i18next";
+import type { ColumnDef } from "@tanstack/react-table";
+import { DataTable, formatAmount, GainAmount, GainPercent } from "@wealthvn/ui";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface AssetLotsTableProps {
   lots: Lot[];
@@ -218,7 +218,7 @@ export const AssetLotsTable = ({ lots, currency, marketPrice }: AssetLotsTablePr
           defaultColumnVisibility={{
             fees: false,
           }}
-          defaultSorting={[{ id: "acquisitionDate", desc: false }]}
+          defaultSorting={[{ id: "holdingDays", desc: false }]}
           scrollable={true}
         />
       </CardContent>

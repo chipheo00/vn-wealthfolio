@@ -269,18 +269,36 @@
       "fields": {
         "title": {
           "label": "Tên mục tiêu",
-          "placeholder": "Tiêu đề hiển thị mục tiêu"
-        },
-        "description": {
-          "label": "Mô tả mục tiêu",
-          "placeholder": "Mô tả ngắn gọn mục tiêu"
+          "placeholder": "Ví dụ: Mua nhà, Nghỉ hưu, Mua xe..."
         },
         "targetAmount": {
           "label": "Số tiền mục tiêu",
-          "placeholder": "Số tiền mục tiêu"
+          "placeholder": "5,000,000,000"
+        },
+        "deadline": {
+          "label": "Thời gian dự kiến",
+          "placeholder": "Chọn ngày mục tiêu"
+        },
+        "investmentPlan": {
+          "title": "Kế hoạch đầu tư",
+          "initialInvestment": "Số tiền đầu tư ban đầu",
+          "sourceAccount": "Nguồn tiền",
+          "sourceAccountPlaceholder": "Nhập thủ công",
+          "amount": "Số tiền"
+        },
+        "monthlyContribution": {
+          "label": "Đầu tư hàng tháng (DCA)",
+          "placeholder": "10,000,000",
+          "hint": "Số tiền bạn dự định thêm vào mục tiêu này mỗi tháng."
+        },
+        "targetReturnRate": {
+          "label": "Tỷ lệ tăng trưởng kỳ vọng",
+          "placeholder": "10",
+          "hint": "Dựa trên danh mục đầu tư dự kiến của bạn.",
+          "suffix": "%/năm"
         },
         "isAchieved": {
-          "label": " Đã đạt mục tiêu"
+          "label": "Đã đạt mục tiêu"
         }
       },
       "buttons": {

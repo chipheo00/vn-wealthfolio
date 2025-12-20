@@ -7,14 +7,14 @@ use crate::schema::vn_assets;
 /// Asset from the vn_assets cache table (market reference data)
 #[derive(Debug, Clone, Queryable)]
 pub struct VnAsset {
-    pub id: String,
+    pub id: Option<String>,
     pub symbol: String,
     pub name: String,
     pub asset_type: String,
     pub exchange: String,
     pub currency: String,
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: chrono::NaiveDateTime,
+    pub updated_at: chrono::NaiveDateTime,
 }
 
 /// New VN asset to be inserted

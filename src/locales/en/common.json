@@ -57,6 +57,8 @@
     "annualized": "Annualized:",
     "other": "Other",
     "na": "N/A",
+    "showMore": "Show More",
+    "showLess": "Show Less",
     "accountCount_one": "{{count}} account",
     "accountCount_other": "{{count}} accounts"
   },

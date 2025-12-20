@@ -35,12 +35,7 @@ export default function SettingsLayout() {
       subtitle: t("navigation.limits.subtitle"),
       icon: <Icons.TrendingUp className="h-5 w-5" />,
     },
-    {
-      title: t("navigation.goals.title"),
-      href: "goals",
-      subtitle: t("navigation.goals.subtitle"),
-      icon: <Icons.Goal className="h-5 w-5" />,
-    },
+
     {
       title: t("navigation.marketData.title"),
       href: "market-data",

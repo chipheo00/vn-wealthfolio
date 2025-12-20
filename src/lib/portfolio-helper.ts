@@ -1,4 +1,4 @@
-import { Goal, GoalAllocation, GoalProgress, AccountValuation } from "./types";
+import { AccountValuation, Goal, GoalAllocation, GoalProgress } from "./types";
 
 export function calculateGoalProgress(
   accountsValuations: AccountValuation[],
@@ -31,15 +31,27 @@ export function calculateGoalProgress(
   // Create a sorted copy of goals to avoid mutating the original array
   const sortedGoals = [...goals].sort((a, b) => a.targetAmount - b.targetAmount);
 
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
   // Calculate progress for each goal
   return sortedGoals.map((goal) => {
     // Use the pre-grouped allocations map
     const goalAllocations = allocationsByGoal.get(goal.id) ?? [];
 
     // Calculate the total value allocated to this goal in base currency
+    // Only count allocations that are active (have started and not ended)
     const totalAllocatedValue = goalAllocations.reduce((total, allocation) => {
+      // Check if allocation has started based on allocationDate
+      const isActive = !allocation.allocationDate || allocation.allocationDate <= todayStr;
+
+      if (!isActive) {
+        return total; // Skip allocations that haven't started yet
+      }
+
       const accountValueInBase = accountValueMap.get(allocation.accountId) ?? 0;
-      const allocatedValue = (accountValueInBase * allocation.percentAllocation) / 100;
+      const allocatedValue = (accountValueInBase * (allocation.allocatedPercent ?? 0)) / 100;
       return total + allocatedValue;
     }, 0);
 
