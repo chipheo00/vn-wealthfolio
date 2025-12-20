@@ -79,6 +79,27 @@ export function SavingGoals() {
     );
   }
 
+  if (goals?.length === 0) {
+    return (
+      <Card className="w-full border-0 bg-transparent pb-4 shadow-none">
+        <CardHeader className="py-2">
+          <CardTitle className="text-md">{t("goals.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Card className="w-full shadow-xs">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <Icons.Goal className="text-muted-foreground mb-2 h-12 w-12" />
+                <p className="text-muted-foreground text-sm">{t("goals.noGoalsSet")}</p>
+                <p className="text-muted-foreground text-xs">{t("goals.createGoalPrompt")}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isError) {
     return (
       <Card className="w-full border-0 bg-transparent shadow-none">
@@ -109,17 +130,9 @@ export function SavingGoals() {
         <CardContent>
           <Card className="w-full shadow-xs">
             <CardContent className="pt-6">
-              {goals && goals.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <Icons.Goal className="text-muted-foreground mb-2 h-12 w-12" />
-                  <p className="text-muted-foreground text-sm">{t("goals.noGoalsSet")}</p>
-                  <p className="text-muted-foreground text-xs">{t("goals.createGoalPrompt")}</p>
-                </div>
-              ) : (
-                <div className="text-muted-foreground flex flex-col items-center justify-center py-6 text-center">
-                  <p className="text-sm">{t("goals.goalDataNotAvailable")}</p>
-                </div>
-              )}
+              <div className="text-muted-foreground flex flex-col items-center justify-center py-6 text-center">
+                <p className="text-sm">{t("goals.goalDataNotAvailable")}</p>
+              </div>
             </CardContent>
           </Card>
         </CardContent>

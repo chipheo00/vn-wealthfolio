@@ -5,6 +5,8 @@ ALTER TABLE goals_allocation ADD COLUMN init_amount DOUBLE NOT NULL DEFAULT 0;
 ALTER TABLE goals_allocation ADD COLUMN allocation_amount DOUBLE NOT NULL DEFAULT 0;
 ALTER TABLE goals_allocation ADD COLUMN allocation_percentage DOUBLE NOT NULL DEFAULT 0;
 ALTER TABLE goals_allocation ADD COLUMN allocation_date TEXT;
+ALTER TABLE goals_allocation ADD COLUMN start_date TEXT;
+ALTER TABLE goals_allocation ADD COLUMN end_date TEXT;
 
 -- Create allocation_versions table to track allocation changes over time
 CREATE TABLE IF NOT EXISTS allocation_versions (

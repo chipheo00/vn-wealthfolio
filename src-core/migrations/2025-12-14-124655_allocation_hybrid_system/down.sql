@@ -6,6 +6,10 @@ DROP INDEX IF EXISTS idx_allocation_versions_allocation_id;
 DROP INDEX IF EXISTS idx_allocation_versions_dates;
 
 -- Remove columns from goals_allocation
--- Note: SQLite 3.35.0+ supports ALTER TABLE DROP COLUMN
--- For older versions, you may need to recreate the table
--- This is left as a no-op for safety with older SQLite versions
+-- Note: SQLite supports ALTER TABLE DROP COLUMN
+ALTER TABLE goals_allocation DROP COLUMN init_amount;
+ALTER TABLE goals_allocation DROP COLUMN allocation_amount;
+ALTER TABLE goals_allocation DROP COLUMN allocation_percentage;
+ALTER TABLE goals_allocation DROP COLUMN allocation_date;
+ALTER TABLE goals_allocation DROP COLUMN start_date;
+ALTER TABLE goals_allocation DROP COLUMN end_date;
