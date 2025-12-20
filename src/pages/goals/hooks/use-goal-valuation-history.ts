@@ -295,11 +295,20 @@ function calculateActualValuesByDate(
             if (startValuation) {
               startAccountValue = startValuation.totalValue;
             } else if (valuations.length > 0) {
-              // Fallback: use earliest available valuation
+              // Find earliest available valuation
               const earliestValuation = valuations.reduce((prev, curr) =>
                 prev.valuationDate < curr.valuationDate ? prev : curr
               );
-              startAccountValue = earliestValuation.totalValue;
+
+              // Only use earliest valuation if it's BEFORE or ON the baseline date
+              // If the account was created AFTER the goal started, use 0 as baseline
+              // This means all account value is attributed to the goal's growth
+              if (earliestValuation.valuationDate <= baselineDate) {
+                startAccountValue = earliestValuation.totalValue;
+              } else {
+                // Account created after goal started - startAccountValue = 0
+                startAccountValue = 0;
+              }
             }
           }
 

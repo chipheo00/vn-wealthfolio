@@ -13,6 +13,7 @@ import { Account, Goal, GoalAllocation } from "@/lib/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatAmount } from "@wealthvn/ui";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 interface EditAllocationsModalProps {
@@ -36,6 +37,7 @@ export function EditAllocationsModal({
   allAllocations = [],
   onSubmit,
 }: EditAllocationsModalProps) {
+  const { t } = useTranslation("goals");
   const queryClient = useQueryClient();
   const [allocations, setAllocations] = useState<Record<string, { allocationAmount: number; allocatedPercent: number }>>({});
   const [availableBalances, setAvailableBalances] = useState<Record<string, number>>({});
@@ -116,13 +118,26 @@ export function EditAllocationsModal({
   }, [open, goal.startDate, accounts]);
 
   // Calculate available balances
-  // Available = Current Value × (Unallocated Percentage / 100)
-  // This ensures that if 100% is allocated, the available balance is 0
+  // For past goals: use historical value at goal start × unallocated percentage
+  // For future goals: use current value × unallocated percentage
+  // This ensures the unallocated balance reflects what was available at goal start
   const calculateAvailableBalances = () => {
     const balances: Record<string, number> = {};
 
     for (const account of accounts) {
-      const currentValue = currentAccountValues.get(account.id) || 0;
+      // Determine if goal started in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const goalStartDate = goal.startDate ? new Date(goal.startDate) : null;
+      const isPastGoal = goalStartDate && goalStartDate <= today;
+
+      // Use historical value for past goals, current value for future goals
+      let baseValue: number;
+      if (isPastGoal && historicalAccountValues[account.id] !== undefined) {
+        baseValue = historicalAccountValues[account.id];
+      } else {
+        baseValue = currentAccountValues.get(account.id) || 0;
+      }
 
       // Sum percentage allocations for this account from OTHER goals only
       const allocatedPercentToOtherGoals = allAllocations.reduce((sum, alloc) => {
@@ -137,8 +152,8 @@ export function EditAllocationsModal({
       // Unallocated percentage available for this goal to use
       const unallocatedPercent = Math.max(0, 100 - allocatedPercentToOtherGoals);
 
-      // Available balance = current value × unallocated percentage
-      balances[account.id] = currentValue * (unallocatedPercent / 100);
+      // Available balance = base value × unallocated percentage
+      balances[account.id] = baseValue * (unallocatedPercent / 100);
     }
 
     setAvailableBalances(balances);
@@ -221,7 +236,7 @@ export function EditAllocationsModal({
 
       // Validate amount - must be > 0 if set
       if (alloc.allocationAmount < 0) {
-        newErrors[account.id] = "Amount cannot be negative";
+        newErrors[account.id] = t("editAllocationsModal.errors.amountNegative");
         continue;
       }
 
@@ -318,8 +333,8 @@ export function EditAllocationsModal({
       handleOpenChange(false);
       // Note: toast is handled by the mutation's onSuccess handler
     } catch (err) {
-      toast.error("Failed to update allocations", {
-        description: err instanceof Error ? err.message : "Unknown error",
+      toast.error(t("editAllocationsModal.saveFailed"), {
+        description: err instanceof Error ? err.message : t("editAllocationsModal.unknownError"),
       });
     } finally {
       setIsLoading(false);
@@ -330,7 +345,7 @@ export function EditAllocationsModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>Edit Allocations for {goal.title}</DialogTitle>
+          <DialogTitle>{t("editModal.title", { title: goal.title })}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -340,19 +355,19 @@ export function EditAllocationsModal({
               <thead>
                 <tr className="bg-muted">
                   <th className="sticky left-0 z-10 px-4 py-3 text-left text-sm font-semibold">
-                    Account
+                    {t("editAllocationsModal.account")}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Unallocated Balance
+                    {t("editAllocationsModal.unallocatedBalance")}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Unallocated Percent
+                    {t("editAllocationsModal.unallocatedPercent")}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Initial Contribution
+                    {t("editAllocationsModal.initialContribution")}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">
-                    Allocated Percent
+                    {t("editAllocationsModal.allocatedPercent")}
                   </th>
                 </tr>
               </thead>
@@ -439,7 +454,7 @@ export function EditAllocationsModal({
 
           {/* Summary */}
           <div className="rounded-lg bg-blue-50 p-4">
-            <p className="text-xs font-semibold text-blue-900">Summary</p>
+            <p className="text-xs font-semibold text-blue-900">{t("editAllocationsModal.summary")}</p>
             <div className="mt-2 space-y-1 text-sm text-blue-800">
               {accounts.map((account) => {
                 const alloc = allocations[account.id];
@@ -459,10 +474,10 @@ export function EditAllocationsModal({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading || isFetchingHistory}>
-            Cancel
+            {t("editAllocationsModal.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading || isFetchingHistory}>
-            {isLoading ? "Updating..." : isFetchingHistory ? "Loading data..." : "Update Allocations"}
+            {isLoading ? t("editAllocationsModal.updating") : isFetchingHistory ? t("editAllocationsModal.loadingData") : t("editAllocationsModal.updateAllocations")}
           </Button>
         </DialogFooter>
       </DialogContent>

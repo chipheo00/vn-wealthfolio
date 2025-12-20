@@ -1,24 +1,22 @@
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDateFormatter } from "@/hooks/use-date-formatter";
 import { useSettingsContext } from "@/lib/settings-provider";
-import { Account, AllocationVersion, GoalAllocation } from "@/lib/types";
-import { invoke } from "@tauri-apps/api/core";
+import { Account, GoalAllocation } from "@/lib/types";
 import { Icons } from "@wealthvn/ui";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -45,14 +43,10 @@ export function AllocationHistoryTable({
   readOnly = false,
   getAllocationValue,
 }: AllocationHistoryTableProps) {
-  const [expandedAllocationId, setExpandedAllocationId] = useState<string | null>(null);
-  const [allocationVersions, setAllocationVersions] = useState<Record<string, AllocationVersion[]>>({});
-  const [isLoadingVersions, setIsLoadingVersions] = useState<Set<string>>(new Set());
   const [editingAllocationId, setEditingAllocationId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [allocationToDelete, setAllocationToDelete] = useState<GoalAllocation | null>(null);
   const [allocationToReset, setAllocationToReset] = useState<GoalAllocation | null>(null);
-  const { formatActivityDate } = useDateFormatter();
   const { t } = useTranslation("goals");
   const { settings } = useSettingsContext();
 
@@ -79,37 +73,6 @@ export function AllocationHistoryTable({
     return { currencySymbol: symbol, formatCurrency: formatValue };
   }, [settings?.baseCurrency]);
 
-  // Fetch allocation versions when expanded
-  const handleExpandAllocation = async (allocationId: string) => {
-    if (expandedAllocationId === allocationId) {
-      setExpandedAllocationId(null);
-      return;
-    }
-
-    if (!allocationVersions[allocationId]) {
-      setIsLoadingVersions((prev) => new Set([...prev, allocationId]));
-      try {
-        const versions: AllocationVersion[] = await invoke("get_allocation_versions", {
-          allocationId,
-        });
-        setAllocationVersions((prev) => ({
-          ...prev,
-          [allocationId]: versions,
-        }));
-      } catch (err) {
-        console.error("Failed to fetch allocation versions:", err);
-      } finally {
-        setIsLoadingVersions((prev) => {
-          const next = new Set(prev);
-          next.delete(allocationId);
-          return next;
-        });
-      }
-    }
-
-    setExpandedAllocationId(allocationId);
-  };
-
   const currentAllocation = allocations.find((a) => a.id === editingAllocationId);
 
   const handleResetAllocation = async (allocation: GoalAllocation) => {
@@ -126,17 +89,16 @@ export function AllocationHistoryTable({
     <div className="space-y-4">
       {/* Current Allocations Table */}
       <div>
-        <h3 className="font-semibold text-sm mb-3">Current Allocations</h3>
+        <h3 className="font-semibold text-sm mb-3">{t("allocationHistoryTable.currentAllocations")}</h3>
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted">
-                <th className="text-left px-4 py-2">Account</th>
-                <th className="text-right px-4 py-2">Initial Contribution</th>
-                <th className="text-right px-4 py-2">%</th>
-                <th className="text-right px-4 py-2">Contributed Value</th>
-                <th className="text-center px-4 py-2">Started</th>
-                {!readOnly && <th className="text-center px-4 py-2">Actions</th>}
+                <th className="text-left px-4 py-2">{t("allocationHistoryTable.account")}</th>
+                <th className="text-right px-4 py-2">{t("allocationHistoryTable.initialContribution")}</th>
+                <th className="text-right px-4 py-2">{t("allocationHistoryTable.allocatedRate")}</th>
+                <th className="text-right px-4 py-2">{t("allocationHistoryTable.contributedValue")}</th>
+                {!readOnly && <th className="text-center px-4 py-2">{t("allocationHistoryTable.actions")}</th>}
               </tr>
             </thead>
             <tbody>
@@ -163,9 +125,6 @@ export function AllocationHistoryTable({
                       <td className="text-right px-4 py-2 font-semibold">
                         {currencySymbol}{formatCurrency(contributedValue)}
                       </td>
-                      <td className="text-center px-4 py-2 text-xs text-muted-foreground">
-                        {alloc.allocationDate ? formatActivityDate(alloc.allocationDate) : "-"}
-                      </td>
                       {!readOnly && (
                         <td className="text-center px-4 py-2">
                           <DropdownMenu>
@@ -187,14 +146,9 @@ export function AllocationHistoryTable({
                                 {t("operations.edit")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleExpandAllocation(alloc.id)}
-                              >
-                                {expandedAllocationId === alloc.id ? "Hide History" : "View History"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
                                 onClick={() => setAllocationToReset(alloc)}
                               >
-                                Reset
+                                {t("allocationHistoryTable.reset")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600"
@@ -207,23 +161,6 @@ export function AllocationHistoryTable({
                         </td>
                       )}
                     </tr>
-
-                    {/* Expanded history row */}
-                    {expandedAllocationId === alloc.id && (
-                      <tr>
-                        <td colSpan={readOnly ? 5 : 6} className="px-4 py-4 bg-muted/30">
-                          {isLoadingVersions.has(alloc.id) ? (
-                            <p className="text-sm text-muted-foreground">Loading history...</p>
-                          ) : (
-                            <AllocationVersionsTable
-                              versions={allocationVersions[alloc.id] || []}
-                              currencySymbol={currencySymbol}
-                              formatCurrency={formatCurrency}
-                            />
-                          )}
-                        </td>
-                      </tr>
-                    )}
                   </React.Fragment>
                 );
               })}
@@ -252,9 +189,9 @@ export function AllocationHistoryTable({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset Allocation</AlertDialogTitle>
+            <AlertDialogTitle>{t("resetAllocation.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will reset the allocation amount to 0 and percentage to 0%. This action cannot be undone.
+              {t("resetAllocation.description")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -266,7 +203,7 @@ export function AllocationHistoryTable({
                 }
               }}
             >
-              Reset
+              {t("resetAllocation.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -300,46 +237,6 @@ export function AllocationHistoryTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
-
-// Sub-component for allocation versions
-function AllocationVersionsTable({ versions, currencySymbol, formatCurrency }: { versions: AllocationVersion[]; currencySymbol: string; formatCurrency: (value: number) => string }) {
-  if (versions.length === 0) {
-    return <p className="text-sm text-muted-foreground">No version history</p>;
-  }
-
-  return (
-    <div className="bg-white rounded-md border">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="text-left px-3 py-2">Period</th>
-            <th className="text-right px-3 py-2">Amount</th>
-            <th className="text-right px-3 py-2">%</th>
-          </tr>
-        </thead>
-        <tbody>
-          {versions.map((version) => {
-            const endDate = version.versionEndDate || "Current";
-
-            return (
-              <tr key={version.id} className="border-b text-xs hover:bg-muted/30">
-                <td className="px-3 py-2">
-                  {version.versionStartDate} to {endDate}
-                </td>
-                <td className="text-right px-3 py-2">
-                  {currencySymbol}{formatCurrency(version.initialContribution)}
-                </td>
-                <td className="text-right px-3 py-2">
-                  {version.allocatedPercent.toFixed(1)}%
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }

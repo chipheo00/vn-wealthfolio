@@ -1,18 +1,18 @@
 import { logger } from "@/adapters";
-import { createGoal, deleteGoal, updateGoal, updateGoalsAllocations, deleteGoalAllocation } from "@/commands/goal";
+import { NewGoalInput, createGoal, deleteGoal, deleteGoalAllocation, updateGoal, updateGoalsAllocations } from "@/commands/goal";
 import { QueryKeys } from "@/lib/query-keys";
-import { GoalAllocation } from "@/lib/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Goal, GoalAllocation } from "@/lib/types";
+import { UseMutationResult, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 // ============ TYPES ============
 export interface GoalMutations {
-  addGoalMutation: ReturnType<typeof useMutation>;
-  updateGoalMutation: ReturnType<typeof useMutation>;
-  deleteGoalMutation: ReturnType<typeof useMutation>;
-  saveAllocationsMutation: ReturnType<typeof useMutation>;
-  updateAllocationMutation: ReturnType<typeof useMutation>;
-  deleteAllocationMutation: ReturnType<typeof useMutation>;
+  addGoalMutation: UseMutationResult<Goal, Error, NewGoalInput, unknown>;
+  updateGoalMutation: UseMutationResult<Goal, Error, Goal, unknown>;
+  deleteGoalMutation: UseMutationResult<void, Error, string, unknown>;
+  saveAllocationsMutation: UseMutationResult<void, Error, GoalAllocation[], unknown>;
+  updateAllocationMutation: UseMutationResult<void, Error, GoalAllocation, unknown>;
+  deleteAllocationMutation: UseMutationResult<void, Error, string, unknown>;
 }
 
 // ============ HELPERS ============

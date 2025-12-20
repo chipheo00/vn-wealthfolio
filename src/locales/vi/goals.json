@@ -226,5 +226,58 @@
     "title": "Xóa phân bổ",
     "description": "Bạn có chắc chắn muốn xóa phân bổ này không? Hành động này không thể hoàn tác.",
     "confirm": "Xóa"
+  },
+  "resetAllocation": {
+    "title": "Đặt lại phân bổ",
+    "description": "Thao tác này sẽ đặt lại số tiền phân bổ về 0 và tỷ lệ về 0%. Hành động này không thể hoàn tác.",
+    "confirm": "Đặt lại"
+  },
+  "allocationHistoryTable": {
+    "currentAllocations": "Phân bổ hiện tại",
+    "account": "Tài khoản",
+    "initialContribution": "Đóng góp ban đầu",
+    "allocatedRate": "Tỷ lệ phân bổ",
+    "contributedValue": "Giá trị đóng góp",
+    "actions": "Thao tác",
+    "reset": "Đặt lại"
+  },
+  "singleAllocationModal": {
+    "editTitle": "Sửa phân bổ",
+    "createTitle": "Tạo phân bổ",
+    "accountBalance": "Số dư tài khoản",
+    "unallocatedGrowth": "Tăng trưởng chưa phân bổ",
+    "initialContribution": "Đóng góp ban đầu",
+    "allocationPercentage": "Tỷ lệ phân bổ (%)",
+    "projectedContributionValue": "Giá trị đóng góp dự kiến",
+    "initial": "Ban đầu",
+    "growth": "Tăng trưởng",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "errors": {
+      "amountNegative": "Số tiền không được âm",
+      "percentageRange": "Tỷ lệ phải từ 0 đến 100",
+      "percentageExceeds": "Tỷ lệ không được vượt quá 100%",
+      "allocationRequired": "Phân bổ phải lớn hơn 0"
+    },
+    "saveFailed": "Không thể lưu phân bổ",
+    "unknownError": "Lỗi không xác định"
+  },
+  "editAllocationsModal": {
+    "saveFailed": "Không thể cập nhật phân bổ",
+    "unknownError": "Lỗi không xác định",
+    "cancel": "Hủy",
+    "updateAllocations": "Cập nhật phân bổ",
+    "updating": "Đang cập nhật...",
+    "loadingData": "Đang tải dữ liệu...",
+    "account": "Tài khoản",
+    "unallocatedBalance": "Số dư chưa phân bổ",
+    "unallocatedPercent": "Tỷ lệ chưa phân bổ",
+    "initialContribution": "Đóng góp ban đầu",
+    "allocatedPercent": "Tỷ lệ phân bổ",
+    "summary": "Tóm tắt",
+    "errors": {
+      "amountNegative": "Số tiền không được âm"
+    }
   }
 }

@@ -1,36 +1,35 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import * as z from "zod";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DatePickerInput, Icons, MoneyInput } from "@wealthvn/ui";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 import {
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
 import { newGoalSchema } from "@/lib/schemas";
 import { useGoalMutations } from "@/pages/goals/hooks/use-goal-mutations";
-import { useAccounts } from "@/hooks/use-accounts";
 
 // Infer type from schema (input type = works with Date)
 type NewGoal = z.infer<typeof newGoalSchema>;
@@ -43,8 +42,7 @@ interface GoalFormProps {
 export function GoalForm({ defaultValues, onSuccess = () => undefined }: GoalFormProps) {
   const { t } = useTranslation("goals");
   const navigate = useNavigate();
-  const { accounts } = useAccounts();
-  const { addGoalMutation, updateGoalMutation, saveAllocationsMutation } = useGoalMutations();
+  const { addGoalMutation, updateGoalMutation } = useGoalMutations();
 
   const form = useForm<NewGoal>({
     resolver: zodResolver(newGoalSchema),
@@ -116,7 +114,7 @@ export function GoalForm({ defaultValues, onSuccess = () => undefined }: GoalFor
     return addGoalMutation.mutate(payload, {
       onSuccess: (createdGoal) => {
         onSuccess();
-        
+
         // Show toast with action to add allocations
         toast.success(t("form.postCreation.success"), {
           description: t("form.postCreation.description"),

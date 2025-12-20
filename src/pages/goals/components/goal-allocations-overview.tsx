@@ -1,7 +1,8 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Goal, GoalAllocation, Account } from "@/lib/types";
-import { AllocationModal } from "./allocation-modal";
+import { Account, Goal, GoalAllocation } from "@/lib/types";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { EditSingleAllocationModal as AllocationModal } from "./edit-single-allocation-modal";
 
 interface GoalAllocationsOverviewProps {
   goals: Goal[];
@@ -20,6 +21,7 @@ export function GoalAllocationsOverview({
   onAllocationCreated,
   readOnly = false,
 }: GoalAllocationsOverviewProps) {
+  const { t } = useTranslation("goals");
   const [selectedAllocation, setSelectedAllocation] = useState<{
     goal: Goal;
     account: Account;
@@ -51,12 +53,12 @@ export function GoalAllocationsOverview({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted">
-              <th className="text-left px-4 py-2">Account</th>
-              <th className="text-right px-4 py-2">Current Value</th>
-              <th className="text-right px-4 py-2">Allocated</th>
-              <th className="text-right px-4 py-2">%</th>
-              <th className="text-right px-4 py-2">Unallocated</th>
-              {!readOnly && <th className="text-center px-4 py-2">Actions</th>}
+              <th className="text-left px-4 py-2">{t("allocationHistoryTable.account")}</th>
+              <th className="text-right px-4 py-2">{t("details.overview.currentProgress")}</th>
+              <th className="text-right px-4 py-2">{t("accountHealth.allocated")}</th>
+              <th className="text-right px-4 py-2">{t("allocationHistoryTable.allocatedRate")}</th>
+              <th className="text-right px-4 py-2">{t("progress.remaining")}</th>
+              {!readOnly && <th className="text-center px-4 py-2">{t("allocationHistoryTable.actions")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -92,7 +94,7 @@ export function GoalAllocationsOverview({
                         }
                       }}
                     >
-                      Add
+                      {t("editModal.addAllocation")}
                     </Button>
                   </td>
                 )}
@@ -109,7 +111,7 @@ export function GoalAllocationsOverview({
 
           return (
             <div key={account.id} className="border rounded-lg p-4">
-              <h3 className="font-semibold text-sm mb-3">{account.name} - Allocations</h3>
+              <h3 className="font-semibold text-sm mb-3">{account.name} - {t("details.allocations.title")}</h3>
               <div className="space-y-2">
                 {accAllocations.map((alloc) => {
                   const goal = goals.find((g) => g.id === alloc.goalId);
@@ -131,7 +133,7 @@ export function GoalAllocationsOverview({
                               setIsModalOpen(true);
                             }}
                           >
-                            Edit
+                            {t("operations.edit")}
                           </Button>
                         )}
                       </div>

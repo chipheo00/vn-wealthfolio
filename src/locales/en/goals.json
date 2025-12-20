@@ -226,5 +226,58 @@
     "title": "Delete Allocation",
     "description": "Are you sure you want to delete this allocation? This action cannot be undone.",
     "confirm": "Delete"
+  },
+  "resetAllocation": {
+    "title": "Reset Allocation",
+    "description": "This will reset the allocation amount to 0 and percentage to 0%. This action cannot be undone.",
+    "confirm": "Reset"
+  },
+  "allocationHistoryTable": {
+    "currentAllocations": "Current Allocations",
+    "account": "Account",
+    "initialContribution": "Initial Contribution",
+    "allocatedRate": "Allocated Rate",
+    "contributedValue": "Contributed Value",
+    "actions": "Actions",
+    "reset": "Reset"
+  },
+  "singleAllocationModal": {
+    "editTitle": "Edit Allocation",
+    "createTitle": "Create Allocation",
+    "accountBalance": "Account Balance",
+    "unallocatedGrowth": "Unallocated Growth",
+    "initialContribution": "Initial Contribution",
+    "allocationPercentage": "Allocation Percentage (%)",
+    "projectedContributionValue": "Projected Contribution Value",
+    "initial": "Initial",
+    "growth": "Growth",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "errors": {
+      "amountNegative": "Amount cannot be negative",
+      "percentageRange": "Percentage must be between 0 and 100",
+      "percentageExceeds": "Percentage cannot exceed 100%",
+      "allocationRequired": "Allocation must be greater than 0"
+    },
+    "saveFailed": "Failed to save allocation",
+    "unknownError": "Unknown error"
+  },
+  "editAllocationsModal": {
+    "saveFailed": "Failed to update allocations",
+    "unknownError": "Unknown error",
+    "cancel": "Cancel",
+    "updateAllocations": "Update Allocations",
+    "updating": "Updating...",
+    "loadingData": "Loading data...",
+    "account": "Account",
+    "unallocatedBalance": "Unallocated Balance",
+    "unallocatedPercent": "Unallocated Percent",
+    "initialContribution": "Initial Contribution",
+    "allocatedPercent": "Allocated Percent",
+    "summary": "Summary",
+    "errors": {
+      "amountNegative": "Amount cannot be negative"
+    }
   }
 }

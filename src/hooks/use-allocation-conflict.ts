@@ -1,6 +1,6 @@
 import {
-  validateAllocationConflict,
-  type AllocationConflictValidationRequest,
+    validateAllocationConflict,
+    type AllocationConflictValidationRequest,
 } from "@/commands/goal";
 import type { Goal, GoalAllocation } from "@/lib/types";
 import { useMutation } from "@tanstack/react-query";
@@ -51,7 +51,7 @@ export function useAllocationConflict({ allAllocations, goals }: UseAllocationCo
   const validateAllocation = useCallback(
     async (allocation: GoalAllocation, excludeIds?: string[]): Promise<ConflictInfo> => {
       // Skip validation if account or percentage not set
-      if (!allocation.accountId || allocation.percentAllocation <= 0) {
+      if (!allocation.accountId || allocation.allocatedPercent <= 0) {
         return { valid: true, message: "" };
       }
 
@@ -65,24 +65,24 @@ export function useAllocationConflict({ allAllocations, goals }: UseAllocationCo
             (a) =>
               a.accountId === allocation.accountId &&
               !idsToExclude.has(a.id) &&
-              a.percentAllocation > 0,
+              a.allocatedPercent > 0,
           )
           .map((a) => {
             const goal = goalsRef.current.find((g) => g.id === a.goalId);
             return {
               goalTitle: goal?.title || "Unknown Goal",
-              percentage: a.percentAllocation,
+              percentage: a.allocatedPercent,
             };
           });
 
         const totalExisting = existingAllocations.reduce((sum, a) => sum + a.percentage, 0);
-        const totalWithNew = totalExisting + allocation.percentAllocation;
+        const totalWithNew = totalExisting + allocation.allocatedPercent;
         const maxAvailable = Math.max(0, 100 - totalExisting);
 
         if (totalWithNew > 100) {
           return {
             valid: false,
-            message: `Total allocation exceeds 100% (current: ${totalExisting}%, adding: ${allocation.percentAllocation}%)`,
+            message: `Total allocation exceeds 100% (current: ${totalExisting}%, adding: ${allocation.allocatedPercent}%)`,
             existingAllocations,
             maxAvailable,
           };

@@ -481,12 +481,12 @@ export default function GoalDetailsPage() {
         <div>
           <div className="mb-4 flex items-start justify-between">
             <div>
-              <h3 className="text-foreground mb-2 text-xl font-bold">Allocation Settings</h3>
-              <p className="text-muted-foreground text-sm">View current allocation percentages for this goal across accounts.</p>
+              <h3 className="text-foreground mb-2 text-xl font-bold">{t("details.allocationSettings.title")}</h3>
+              <p className="text-muted-foreground text-sm">{t("details.allocationSettings.description")}</p>
             </div>
             <Button onClick={() => setIsCreatingAllocation(true)} variant="default">
               <Icons.Pencil className="mr-2 h-4 w-4" />
-              Edit Allocations
+              {t("details.allocationSettings.editButton")}
             </Button>
           </div>
           {goal && accounts && (
