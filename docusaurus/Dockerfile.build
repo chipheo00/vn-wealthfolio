@@ -5,17 +5,24 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Use corepack to prepare pnpm version 9 for lockfileVersion 9.0
+# Enable pnpm
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
-# Copy workspace files first
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+# Setup Docusaurus dependencies
+# We maintain a separate directory structure to match what scripts expect
+WORKDIR /app/docusaurus
+COPY docusaurus/package.json ./
 
-# Install workspace dependencies (includes docs dependencies)
+# Install dependencies strictly for docusaurus
 RUN pnpm install
 
-# Copy docs directory
-COPY docusaurus ./docusaurus
+# Copy source files
+COPY docusaurus/ ./
+
+# Copy documentation content (required for sync script)
+# Script expects docs at ../docs relative to docusaurus root
+WORKDIR /app
+COPY docs ./docs
 
 # Build documentation
 WORKDIR /app/docusaurus
