@@ -44,7 +44,7 @@ module.exports = {
       title: "WealthVN",
       logo: {
         alt: "WealthVN Logo",
-        src: "img/logo.svg",
+        src: "img/logo.png",
       },
       items: [
         {
