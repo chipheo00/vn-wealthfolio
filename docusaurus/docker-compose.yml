@@ -6,10 +6,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3010:3010"
-    command: pnpm serve --host 0.0.0.0 --port 3010
-    restart: unless-stopped
-    # If you want to run in development mode with hot-reload, uncomment the following lines:
-    # command: pnpm start --host 0.0.0.0 --port 3010
-    # volumes:
-    #   - .:/app
-    #   - /app/node_modules
+    # Production command (commented out for dev)
+    # command: pnpm serve --host 0.0.0.0 --port 3010
+
+    # Development mode with hot-reload
+    command: pnpm start --host 0.0.0.0 --port 3010
+    volumes:
+      - .:/app
+      - /app/node_modules

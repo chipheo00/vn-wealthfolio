@@ -66,11 +66,7 @@ export default {
             {
               type: "doc",
               id: "development/i18n",
-            },
-            {
-              type: "doc",
-              id: "development/rebranding",
-            },
+            }
           ],
         },
       ],

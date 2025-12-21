@@ -1,3 +1,4 @@
+import { getHoldings } from "@/commands/portfolio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { QueryKeys } from "@/lib/query-keys";
+import { useQueries } from "@tanstack/react-query";
 import { AmountDisplay, AnimatedToggleGroup } from "@wealthvn/ui";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -68,6 +71,7 @@ export const HoldingsPage = () => {
   const [sheetCompositionFilter, setSheetCompositionFilter] = useState<Instrument["id"] | null>(
     null,
   );
+  const [sheetAccountIdsFilter, setSheetAccountIdsFilter] = useState<string[] | null>(null);
 
   // Mobile filter state
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -78,7 +82,7 @@ export const HoldingsPage = () => {
     name: string,
     title?: string,
     compositionId?: Instrument["id"],
-    _accountIdsForFilter?: string[],
+    accountIdsForFilter?: string[],
   ) => {
     setSheetFilterType(type);
     setSheetFilterName(name);
@@ -88,11 +92,56 @@ export const HoldingsPage = () => {
     } else {
       setSheetCompositionFilter(null);
     }
+    if (type === "account" && accountIdsForFilter) {
+      setSheetAccountIdsFilter(accountIdsForFilter);
+    } else {
+      setSheetAccountIdsFilter(null);
+    }
     setIsSheetOpen(true);
   };
 
+  // Fetch holdings for specific accounts when account filter is active
+  const accountHoldingsQueries = useQueries({
+    queries: (sheetAccountIdsFilter ?? []).map((accountId) => ({
+      queryKey: [QueryKeys.HOLDINGS, accountId],
+      queryFn: () => getHoldings(accountId),
+      enabled: sheetFilterType === "account" && isSheetOpen && !!sheetAccountIdsFilter?.length,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    })),
+  });
+
+  // Combine holdings from all accounts when filtering by account
+  const accountHoldings = useMemo(() => {
+    if (sheetFilterType !== "account" || !sheetAccountIdsFilter?.length) {
+      return [];
+    }
+    const allHoldings: Holding[] = [];
+    accountHoldingsQueries.forEach((query) => {
+      if (query.data) {
+        allHoldings.push(...query.data);
+      }
+    });
+    return allHoldings;
+  }, [accountHoldingsQueries, sheetFilterType, sheetAccountIdsFilter]);
+
+  const isLoadingAccountHoldings = accountHoldingsQueries.some((q) => q.isLoading);
+
   const holdingsForSheet = useMemo(() => {
-    if (!sheetFilterType || !adjustedHoldings) {
+    if (!sheetFilterType) {
+      return [];
+    }
+
+    // For account filter, use the fetched account holdings
+    if (sheetFilterType === "account") {
+      return accountHoldings.sort((a, b) => {
+        const bBase = b.marketValue?.base ?? 0;
+        const aBase = a.marketValue?.base ?? 0;
+        return Number(bBase) - Number(aBase);
+      });
+    }
+
+    // For other filters, use adjusted holdings from the current view
+    if (!adjustedHoldings) {
       return [];
     }
 
@@ -139,7 +188,7 @@ export const HoldingsPage = () => {
       const aBase = a.marketValue?.base ?? 0;
       return Number(bBase) - Number(aBase);
     });
-  }, [adjustedHoldings, sheetFilterType, sheetFilterName, sheetCompositionFilter]);
+  }, [adjustedHoldings, sheetFilterType, sheetFilterName, sheetCompositionFilter, accountHoldings]);
 
   const handleAccountSelect = (account: Account) => {
     setSelectedAccount(account);
@@ -212,7 +261,18 @@ export const HoldingsPage = () => {
           }
         />
 
-        <AccountAllocationChart isLoading={isLoading} />
+        <AccountAllocationChart
+          isLoading={isLoading}
+          onAccountSectionClick={(groupOrAccountName, accountIdsInGroup) =>
+            handleChartSectionClick(
+              "account",
+              groupOrAccountName,
+              t("charts.holdingsIn", { name: groupOrAccountName }),
+              undefined,
+              accountIdsInGroup,
+            )
+          }
+        />
 
         <ClassesChart
           holdings={[...cashHoldings, ...filteredNonCashHoldings]}
@@ -337,7 +397,11 @@ export const HoldingsPage = () => {
             <SheetTitle>{sheetTitle}</SheetTitle>
           </SheetHeader>
           <div className="py-8">
-            {holdingsForSheet.length > 0 ? (
+            {sheetFilterType === "account" && isLoadingAccountHoldings ? (
+              <div className="flex items-center justify-center py-8">
+                <Icons.Spinner className="h-6 w-6 animate-spin" />
+              </div>
+            ) : holdingsForSheet.length > 0 ? (
               <ul className="space-y-2">
                 {holdingsForSheet.map((holding) => {
                   let displayName = t("common:common.na");

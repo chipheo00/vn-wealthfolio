@@ -21,38 +21,76 @@
 
 ### Giới thiệu
 
-**WealthVN** là ứng dụng theo dõi danh mục đầu tư đẹp mắt được thiết kế riêng
-cho thị trường Việt Nam, với lưu trữ dữ liệu cục bộ. Không cần đăng ký, không
-phụ thuộc vào đám mây.
+**WealthVN** - Quản lý tài chính & đầu tư cá nhân thông minh
+
+**Tất cả tài sản – Một nơi duy nhất**
+
+WealthVN giúp bạn theo dõi, quản lý và phát triển danh mục đầu tư một cách **trực quan – chính xác – dễ sử dụng**, được thiết kế riêng cho nhà đầu tư Việt Nam.
+
+---
+
+### 🚀 Những điểm nổi bật của WealthVN
+
+* **Quản lý toàn bộ danh mục đầu tư**
+  Cổ phiếu, quỹ đầu tư, tiền mặt, trái phiếu… tất cả được tổng hợp trong một dashboard duy nhất.
+
+* **Theo dõi hiệu suất & tăng trưởng theo thời gian**
+  Biểu đồ trực quan giúp bạn nắm rõ lãi/lỗ, tăng trưởng YTD, và giá trị tài sản ròng.
+
+* **Lịch sử giao dịch chi tiết**
+  Quản lý từng giao dịch mua/bán, phí, giá vốn cho từng tài sản.
+
+* **Phân tích danh mục thông minh**
+  Phân bổ theo tài sản, tài khoản, ngành nghề và quốc gia – rõ ràng chỉ trong vài giây.
+
+* **Quản lý mục tiêu tài chính**
+  Lập kế hoạch cho các mục tiêu lớn như **mua nhà, mua xe, nghỉ hưu**, kèm dự phóng tăng trưởng.
+
+* **Hỗ trợ dữ liệu thị trường Việt Nam**
+  Tích hợp giá cổ phiếu, quỹ, và dữ liệu thị trường từ các nguồn uy tín.
+
+* **Giao diện hiện đại, dễ tuỳ chỉnh**
+  Light/Dark mode, nhiều màu chủ đề, trải nghiệm mượt mà trên mọi thiết bị.
+
+---
+
+### 💡 Dành cho ai?
+
+* Nhà đầu tư cá nhân tại Việt Nam
+* Người muốn quản lý tài chính cá nhân một cách bài bản
+* Người có nhiều tài sản & mục tiêu tài chính dài hạn
+
+---
+### Lưu ý khi cài đặt WealthVN
+
+  WealthVn hiện tại là open source app, với ngân sách hạn chế, nên khi bạn cài đặt, bạn sẽ thấy thông báo cảnh báo app chưa được đăng ký (Chưa có tiền đăng ký ).
+  - Trên Windows bạn có thể tắt thông báo này
+  - Trên MacOS bạn có thể tắt thông báo này trong cài đặt. Dùng lệnh sau:
+    ```
+      xattr -d com.apple.quarantine /Applications/Wealth\ VN.app
+    ```
+  - Trên Linux bạn có thể cài app một cách bình thường.
+
+### 📈 WealthVN – Hiểu rõ tài sản, tự tin đầu tư
+
+> Quản lý tài chính không cần phức tạp. Chỉ cần đúng công cụ.
+
+**Bắt đầu xây dựng tương lai tài chính của bạn cùng WealthVN.**
+
+---
+
+![Screenshot](public/screenshot.webp)
+
 
 Được fork từ [Wealthfolio](https://github.com/afadil/wealthfolio) của Aziz
 Fadil.
 
-![Screenshot](public/screenshot.webp)
 
-### Tính năng chính
-
-- **Theo dõi Danh mục** - Theo dõi khoản đầu tư của bạn trên nhiều tài khoản và
-  loại tài sản
-- **Phân tích Hiệu suất** - Chỉ số hiệu suất chi tiết và phân tích lịch sử
-- **Quản lý Giao dịch** - Nhập và quản lý tất cả hoạt động giao dịch của bạn
-- **Lập kế hoạch Mục tiêu** - Đặt và theo dõi mục tiêu tài chính với quản lý
-  phân bổ
-- **Dữ liệu Cục bộ** - Tất cả dữ liệu được lưu trữ cục bộ, không phụ thuộc vào
-  đám mây
-- **Mở rộng** - Hệ thống addon mạnh mẽ cho chức năng tùy chỉnh
-- **Đa tiền tệ** - Hỗ trợ nhiều loại tiền tệ với quản lý tỷ giá hối đoái
-- **Đa ngôn ngữ** - Hỗ trợ quốc tế hóa đầy đủ (Tiếng Anh, Tiếng Việt)
-- **Đa nền tảng** - Có sẵn trên Windows, macOS và Linux
-- **Hỗ trợ Thị trường VN** - Hỗ trợ tích hợp dữ liệu thị trường chứng khoán Việt
-  Nam
 
 ### Introduction
 
 **WealthVN** is a Beautiful Portfolio Tracker designed for the Vietnamese
 market, with Local Data Storage. No Subscriptions, No Cloud.
-
-Forked from [Wealthfolio](https://github.com/afadil/wealthfolio) by Aziz Fadil.
 
 ### Key Features
 

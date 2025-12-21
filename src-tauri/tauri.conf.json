@@ -19,7 +19,7 @@
     "category": "Finance",
     "createUpdaterArtifacts": false
   },
-  "productName": "Wealth VN",
+  "productName": "WealthVN",
   "mainBinaryName": "WealthVN",
   "version": "1.0.3",
   "identifier": "com.wealthvn.app",
