@@ -4,46 +4,77 @@ import Layout from '@theme/Layout';
 import { useState } from 'react';
 
 function HeroSection() {
+  const { siteConfig } = useDocusaurusContext();
+  const baseUrl = siteConfig.baseUrl;
+
   return (
     <section className="hero-section">
       <div className="hero-background">
         <div className="hero-gradient"></div>
         <div className="hero-pattern"></div>
       </div>
-      <div className="hero-content">
-        <div className="hero-badge">
-          <span className="badge-icon">🚀</span>
-          <span>Personal Finance Made Simple</span>
+      <div className="hero-container">
+        <div className="hero-text">
+          <div className="hero-badge">
+            <span className="badge-icon">🚀</span>
+            <span>Personal Finance Made Simple</span>
+          </div>
+          <h1 className="hero-title">
+            <span className="title-gradient">WealthVN</span>
+            <br />
+            <span className="title-subtitle">Quản Lý Tài Chính Cá Nhân</span>
+          </h1>
+          <p className="hero-description">
+            Ứng dụng desktop mạnh mẽ giúp bạn theo dõi danh mục đầu tư,
+            quản lý tài sản và đạt được mục tiêu tài chính một cách dễ dàng.
+          </p>
+          <div className="hero-buttons">
+            <Link className="btn btn-primary" to="https://github.com/chipheo00/vn-wealthfolio/releases">
+              <span>⬇️</span> Tải Xuống Ngay
+            </Link>
+          </div>
+          <div className="hero-stats">
+            <div className="stat-item">
+              <span className="stat-number">100%</span>
+              <span className="stat-label">Miễn Phí</span>
+            </div>
+            <div className="stat-divider"></div>
+            <div className="stat-item">
+              <span className="stat-number">🔒</span>
+              <span className="stat-label">Bảo Mật Cao</span>
+            </div>
+            <div className="stat-divider"></div>
+            <div className="stat-item">
+              <span className="stat-number">📊</span>
+              <span className="stat-label">Offline First</span>
+            </div>
+          </div>
         </div>
-        <h1 className="hero-title">
-          <span className="title-gradient">WealthVN</span>
-          <br />
-          <span className="title-subtitle">Quản Lý Tài Chính Cá Nhân</span>
-        </h1>
-        <p className="hero-description">
-          Ứng dụng desktop mạnh mẽ giúp bạn theo dõi danh mục đầu tư,
-          quản lý tài sản và đạt được mục tiêu tài chính một cách dễ dàng.
-        </p>
-        <div className="hero-buttons">
-          <Link className="btn btn-primary" to="https://github.com/chipheo00/vn-wealthfolio/releases">
-            <span>⬇️</span> Tải Xuống Ngay
-          </Link>
 
-        </div>
-        <div className="hero-stats">
-          <div className="stat-item">
-            <span className="stat-number">100%</span>
-            <span className="stat-label">Miễn Phí</span>
+        <div className="hero-visual">
+          <div className="hero-image-card card-1">
+            <div className="hero-window-header">
+              <span className="dot red"></span>
+              <span className="dot yellow"></span>
+              <span className="dot green"></span>
+            </div>
+            <img src={`${baseUrl}img/screenshot-dashboard.png`} alt="Dashboard" />
           </div>
-          <div className="stat-divider"></div>
-          <div className="stat-item">
-            <span className="stat-number">🔒</span>
-            <span className="stat-label">Bảo Mật Cao</span>
+          <div className="hero-image-card card-2">
+            <div className="hero-window-header">
+              <span className="dot red"></span>
+              <span className="dot yellow"></span>
+              <span className="dot green"></span>
+            </div>
+            <img src={`${baseUrl}img/screenshot-holdings.png`} alt="Holdings" />
           </div>
-          <div className="stat-divider"></div>
-          <div className="stat-item">
-            <span className="stat-number">📊</span>
-            <span className="stat-label">Offline First</span>
+          <div className="hero-image-card card-3">
+            <div className="hero-window-header">
+              <span className="dot red"></span>
+              <span className="dot yellow"></span>
+              <span className="dot green"></span>
+            </div>
+            <img src={`${baseUrl}img/screenshot-vn-market.png`} alt="Vietnam Market" />
           </div>
         </div>
       </div>
@@ -145,6 +176,11 @@ function ScreenshotSection() {
       src: `${baseUrl}img/screenshot-settings.png`,
       title: 'Tùy Chỉnh Giao Diện',
       description: 'Chọn theme, font và màu sắc theo sở thích cá nhân',
+    },
+    {
+      src: `${baseUrl}img/screenshot-vn-market.png`,
+      title: 'Dữ Liệu Thị Trường',
+      description: 'Hỗ trợ cập nhật dữ liệu chứng khoán Việt Nam, chứng chỉ quỹ và giá vàng',
     },
   ];
 
