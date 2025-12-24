@@ -259,18 +259,20 @@
     "cancel": "Hủy",
     "save": "Lưu",
     "saving": "Đang lưu...",
+    "loading": "Đang tải...",
     "errors": {
       "amountNegative": "Số tiền không được âm",
       "percentageRange": "Tỷ lệ phải từ 0 đến 100",
       "percentageExceeds": "Tỷ lệ không được vượt quá 100%",
-      "allocationRequired": "Phân bổ phải lớn hơn 0"
+      "allocationRequired": "Phân bổ phải lớn hơn 0",
+      "amountExceedsUnallocated": "Số tiền vượt quá số dư chưa phân bổ",
+      "percentageExceedsTotal": "Tổng tỷ lệ vượt quá 100%"
     },
     "saveFailed": "Không thể lưu phân bổ",
     "unknownError": "Lỗi không xác định",
     "summary": "Tóm tắt phân bổ",
     "reviewAllocation": "Điều chỉnh phân bổ cho tài khoản này",
     "currentBalance": "Số dư hiện tại",
-    "unallocatedGrowth": "Tăng trưởng chưa phân bổ",
     "amount": "Số tiền phân bổ"
   },
   "editAllocationsModal": {
@@ -287,7 +289,6 @@
     "allocatedPercent": "Tỷ lệ phân bổ",
     "summary": "Tóm tắt",
     "amount": "Số tiền",
-    "available": "Số dư khả dụng",
     "reviewAllocations": "Xem xét và điều chỉnh phân bổ danh mục đầu tư",
     "totalAllocated": "Tổng đã phân bổ",
     "accounts": "Tài khoản",

@@ -377,7 +377,9 @@ export interface GoalAllocation {
   accountId: string;
   initialContribution: number; // Initial contribution amount at allocation start date
   allocatedPercent: number;
-  allocationDate?: string; // YYYY-MM-DD format
+  allocationDate?: string; // YYYY-MM-DD format (legacy, may be null)
+  startDate?: string; // Allocation start date (backfilled from goal)
+  endDate?: string; // Allocation end date (backfilled from goal)
 }
 
 export interface AllocationVersion {

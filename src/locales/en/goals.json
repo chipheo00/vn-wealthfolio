@@ -259,18 +259,20 @@
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving...",
+    "loading": "Loading...",
     "errors": {
       "amountNegative": "Amount cannot be negative",
       "percentageRange": "Percentage must be between 0 and 100",
       "percentageExceeds": "Percentage cannot exceed 100%",
-      "allocationRequired": "Allocation must be greater than 0"
+      "allocationRequired": "Allocation must be greater than 0",
+      "amountExceedsUnallocated": "Amount exceeds unallocated balance",
+      "percentageExceedsTotal": "Total percentage exceeds 100%"
     },
     "saveFailed": "Failed to save allocation",
     "unknownError": "Unknown error",
     "summary": "Allocation Summary",
     "reviewAllocation": "Adjust allocation for this specific account",
     "currentBalance": "Current Balance",
-    "unallocatedGrowth": "Unallocated Growth",
     "amount": "Allocation Amount"
   },
   "editAllocationsModal": {
@@ -287,7 +289,6 @@
     "allocatedPercent": "Allocated Percent",
     "summary": "Summary",
     "amount": "Allocation Amount",
-    "available": "Available Balance",
     "reviewAllocations": "Review and adjust your portfolio allocations",
     "totalAllocated": "Total Allocated",
     "accounts": "Accounts",

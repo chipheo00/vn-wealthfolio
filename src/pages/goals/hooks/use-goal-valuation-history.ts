@@ -4,25 +4,25 @@ import { QueryKeys } from "@/lib/query-keys";
 import type { AccountValuation, Goal, GoalAllocation } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import {
-  addDays,
-  addMonths,
-  addWeeks,
-  addYears,
-  eachMonthOfInterval,
-  eachWeekOfInterval,
-  eachYearOfInterval,
-  endOfMonth,
-  endOfWeek,
-  endOfYear,
-  format,
-  isAfter,
-  isBefore,
-  isEqual,
-  parseISO,
-  startOfDay,
-  subMonths,
-  subWeeks,
-  subYears,
+    addDays,
+    addMonths,
+    addWeeks,
+    addYears,
+    eachMonthOfInterval,
+    eachWeekOfInterval,
+    eachYearOfInterval,
+    endOfMonth,
+    endOfWeek,
+    endOfYear,
+    format,
+    isAfter,
+    isBefore,
+    isEqual,
+    parseISO,
+    startOfDay,
+    subMonths,
+    subWeeks,
+    subYears,
 } from "date-fns";
 import { useMemo } from "react";
 import { calculateDailyInvestment, calculateProjectedValueByDate } from "../lib/goal-utils";
@@ -236,12 +236,12 @@ function buildAllocationDetailsMap(
 
   allocations?.forEach((alloc) => {
     if (alloc.goalId === goalId) {
+      // Use allocationDate, or fallback to startDate (backfilled from goal), or goalStartDate
+      const allocStartDate = alloc.allocationDate || alloc.startDate || goalStartDate;
       detailsMap.set(alloc.accountId, {
         percentage: alloc.allocatedPercent / 100,
         initialContribution: alloc.initialContribution,
-        startDate: alloc.allocationDate
-          ? alloc.allocationDate.split("T")[0]
-          : goalStartDate.split("T")[0],
+        startDate: allocStartDate ? allocStartDate.split("T")[0] : goalStartDate.split("T")[0],
       });
     }
   });

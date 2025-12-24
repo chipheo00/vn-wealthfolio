@@ -1,3 +1,4 @@
+import { getHistoricalValuations } from "@/commands/portfolio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,15 +19,22 @@ import { Percent } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { calculateAllocationContributedValue, calculateUnallocatedBalance } from "../lib/goal-utils";
 
 interface EditSingleAllocationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  goal: { id: string; title: string };
+  goal: { id: string; title: string; startDate?: string };
   account: Account;
   currentAllocation?: GoalAllocation;
   currentAccountValue: number;
+  allAllocations?: GoalAllocation[]; // All allocations for time-aware calculation
   onSubmit: (allocation: GoalAllocation) => Promise<void>;
+}
+
+// Type for storing historical values at multiple dates
+interface HistoricalValuesCache {
+  [key: string]: number;
 }
 
 export function EditSingleAllocationModal({
@@ -36,6 +44,7 @@ export function EditSingleAllocationModal({
   account,
   currentAllocation,
   currentAccountValue,
+  allAllocations = [],
   onSubmit,
 }: EditSingleAllocationModalProps) {
   const { t } = useTranslation("goals");
@@ -43,6 +52,18 @@ export function EditSingleAllocationModal({
   const [percentage, setPercentage] = useState<number>(currentAllocation?.allocatedPercent || 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
+  const [historicalValuesCache, setHistoricalValuesCache] = useState<HistoricalValuesCache>({});
+  const [baseUnallocatedBalance, setBaseUnallocatedBalance] = useState<number>(currentAccountValue);
+
+  // Helper to get cache key
+  const getCacheKey = (date: string) => `${account.id}:${date}`;
+
+  // Helper to parse date string to YYYY-MM-DD format
+  const formatDateString = (date: string | undefined): string | null => {
+    if (!date) return null;
+    return date.split("T")[0];
+  };
 
   // Reset state when opening (in case props changed)
   useEffect(() => {
@@ -51,6 +72,130 @@ export function EditSingleAllocationModal({
     setPercentage(currentAllocation?.allocatedPercent || 0);
     setErrors({});
   }, [open, currentAllocation]);
+
+  // Fetch historical valuations for time-aware calculation
+  useEffect(() => {
+    const fetchHistoricalValues = async () => {
+      if (!open) return;
+
+      setIsFetchingHistory(true);
+      const newCache: HistoricalValuesCache = {};
+
+      try {
+        // Collect all dates we need to fetch for this account
+        const fetchDates: string[] = [];
+
+        // 1. Current goal's start date
+        const currentGoalStartDate = formatDateString(goal.startDate);
+        if (currentGoalStartDate) {
+          fetchDates.push(currentGoalStartDate);
+        }
+
+        // 2. Other allocations' start dates (for this account only)
+        for (const alloc of allAllocations) {
+          if (alloc.goalId === goal.id) continue; // Skip current goal
+          if (alloc.accountId !== account.id) continue; // Skip other accounts
+
+          const allocStartDate = formatDateString(alloc.allocationDate || alloc.startDate);
+          if (allocStartDate && !fetchDates.includes(allocStartDate)) {
+            fetchDates.push(allocStartDate);
+          }
+        }
+
+        // Fetch all values
+        await Promise.all(
+          fetchDates.map(async (date) => {
+            try {
+              const valuations = await getHistoricalValuations(account.id, date, date);
+              if (valuations && valuations.length > 0) {
+                newCache[getCacheKey(date)] = valuations[0].totalValue;
+              } else {
+                // Try 7-day window
+                const endDate = new Date(date);
+                endDate.setDate(endDate.getDate() + 7);
+                const rangeValuations = await getHistoricalValuations(
+                  account.id,
+                  date,
+                  endDate.toISOString().split("T")[0]
+                );
+                if (rangeValuations && rangeValuations.length > 0) {
+                  newCache[getCacheKey(date)] = rangeValuations[0].totalValue;
+                } else {
+                  newCache[getCacheKey(date)] = 0;
+                }
+              }
+            } catch (err) {
+              console.error(`Failed to fetch history for ${account.id} on ${date}`, err);
+              newCache[getCacheKey(date)] = 0;
+            }
+          })
+        );
+
+        setHistoricalValuesCache(newCache);
+      } catch (error) {
+        console.error("Error fetching historical valuations", error);
+      } finally {
+        setIsFetchingHistory(false);
+      }
+    };
+
+    fetchHistoricalValues();
+  }, [open, goal.startDate, goal.id, account.id, allAllocations]);
+
+  // Calculate time-aware unallocated balance
+  useEffect(() => {
+    if (!open) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const goalStartDateObj = goal.startDate ? new Date(goal.startDate) : null;
+    const isPastGoal = goalStartDateObj && goalStartDateObj <= today;
+    const currentGoalStartDate = formatDateString(goal.startDate);
+
+    // Get account value at current goal's start date
+    let accountValueAtGoalStart: number;
+    if (isPastGoal && currentGoalStartDate) {
+      // For past goals: use historical value, fallback to 0 if not found (consistent with edit-allocations-modal)
+      accountValueAtGoalStart = historicalValuesCache[getCacheKey(currentGoalStartDate)] ?? 0;
+    } else {
+      // Future goal: use current account value
+      accountValueAtGoalStart = currentAccountValue;
+    }
+
+    // Calculate contributed values from OTHER goals' allocations
+    const otherAllocationsContributedValues: number[] = [];
+
+    for (const alloc of allAllocations) {
+      if (alloc.goalId === goal.id) continue; // Skip current goal
+      if (alloc.accountId !== account.id) continue; // Skip other accounts
+
+      const allocStartDate = formatDateString(alloc.allocationDate || alloc.startDate);
+      if (!allocStartDate) continue;
+
+      const accountValueAtAllocStart = historicalValuesCache[getCacheKey(allocStartDate)] ?? 0;
+      const allocStartDateObj = new Date(allocStartDate);
+      const queryDateObj = goalStartDateObj || today;
+
+      const contributedValue = calculateAllocationContributedValue(
+        alloc.initialContribution || 0,
+        alloc.allocatedPercent || 0,
+        accountValueAtAllocStart,
+        accountValueAtGoalStart,
+        allocStartDateObj,
+        queryDateObj
+      );
+
+      otherAllocationsContributedValues.push(contributedValue);
+    }
+
+    // Calculate base unallocated balance
+    const unallocated = calculateUnallocatedBalance(
+      accountValueAtGoalStart,
+      otherAllocationsContributedValues
+    );
+
+    setBaseUnallocatedBalance(unallocated);
+  }, [open, historicalValuesCache, allAllocations, goal.id, goal.startDate, account.id, currentAccountValue]);
 
   // Handle amount change - INDEPENDENT from percentage
   const handleAmountChange = (value: number) => {
@@ -63,6 +208,17 @@ export function EditSingleAllocationModal({
     setPercentage(value);
     setErrors((prev) => ({ ...prev, percentage: "" }));
   };
+
+  // Calculate remaining unallocated after current input
+  const remainingUnallocatedBalance = Math.max(0, baseUnallocatedBalance - amount);
+
+  // Calculate unallocated percentage
+  const otherGoalsPercent = allAllocations.reduce((sum, alloc) => {
+    if (alloc.goalId === goal.id) return sum;
+    if (alloc.accountId !== account.id) return sum;
+    return sum + (alloc.allocatedPercent || 0);
+  }, 0);
+  const remainingUnallocatedPercent = Math.max(0, 100 - otherGoalsPercent - percentage);
 
   // Validate form
   const validateForm = (): boolean => {
@@ -80,10 +236,14 @@ export function EditSingleAllocationModal({
        newErrors.amount = t("singleAllocationModal.errors.allocationRequired");
     }
 
-    // Simple check: percentage should not exceed 100%
-    // Backend will do the full validation including other allocations
-    if (percentage > 100) {
-      newErrors.percentage = t("singleAllocationModal.errors.percentageExceeds");
+    // Check if amount exceeds unallocated balance
+    if (amount > baseUnallocatedBalance) {
+      newErrors.amount = t("singleAllocationModal.errors.amountExceedsUnallocated");
+    }
+
+    // Check total percentage
+    if (100 - otherGoalsPercent - percentage < 0) {
+      newErrors.percentage = t("singleAllocationModal.errors.percentageExceedsTotal");
     }
 
     setErrors(newErrors);
@@ -106,9 +266,8 @@ export function EditSingleAllocationModal({
         allocatedPercent: percentage,
         // allocationDate follows goal's dates - handled by backend
         allocationDate: currentAllocation?.allocationDate,
-        // Required deprecated fields for backend compatibility
-        percentAllocation: percentage,
-        allocationAmount: amount,
+        startDate: currentAllocation?.startDate,
+        endDate: currentAllocation?.endDate,
       } as GoalAllocation;
 
       await onSubmit(allocation);
@@ -170,17 +329,20 @@ export function EditSingleAllocationModal({
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="text-muted-foreground text-xs">{t("singleAllocationModal.currentBalance")}</span>
-                      <span className="text-muted-foreground text-xs text-right">{t("singleAllocationModal.unallocatedGrowth")}</span>
+                      <span className="text-muted-foreground text-xs">{t("editAllocationsModal.unallocatedBalance")}</span>
+                      <span className="text-muted-foreground text-xs text-right">{t("editAllocationsModal.unallocatedPercent")}</span>
 
-                      <span className="font-mono font-medium text-foreground">
-                        {formatAmount(currentAccountValue, account.currency, true)}
+                      <span className={cn(
+                        "font-mono font-medium",
+                        remainingUnallocatedBalance < baseUnallocatedBalance * 0.1 ? "text-amber-500" : "text-foreground"
+                      )}>
+                        {isFetchingHistory ? "..." : formatAmount(remainingUnallocatedBalance, account.currency, true)}
                       </span>
                       <span className={cn(
                         "font-mono font-medium text-right",
-                        (100 - percentage) < 10 ? "text-amber-500" : "text-green-600"
+                        remainingUnallocatedPercent < 10 ? "text-amber-500" : "text-green-600"
                       )}>
-                        {Math.max(0, 100 - percentage).toFixed(1)}%
+                        {remainingUnallocatedPercent.toFixed(1)}%
                       </span>
                     </div>
                  </div>
@@ -211,7 +373,7 @@ export function EditSingleAllocationModal({
                          placeholder="0.00"
                          step="0.01"
                          min="0"
-                         disabled={isLoading}
+                         disabled={isLoading || isFetchingHistory}
                          className={cn(
                            "pl-7 font-mono",
                            errors.amount && "border-destructive focus-visible:ring-destructive"
@@ -227,7 +389,7 @@ export function EditSingleAllocationModal({
                          step="0.1"
                          min="0"
                          max="100"
-                         disabled={isLoading}
+                         disabled={isLoading || isFetchingHistory}
                          className={cn(
                             "pr-8 font-mono",
                             errors.percentage && "border-destructive focus-visible:ring-destructive"
@@ -272,11 +434,11 @@ export function EditSingleAllocationModal({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0 mt-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading || isFetchingHistory}>
             {t("singleAllocationModal.cancel")}
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            {isLoading ? t("singleAllocationModal.saving") : t("singleAllocationModal.save")}
+          <Button onClick={handleSubmit} disabled={isLoading || isFetchingHistory} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            {isLoading ? t("singleAllocationModal.saving") : isFetchingHistory ? t("singleAllocationModal.loading") : t("singleAllocationModal.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
