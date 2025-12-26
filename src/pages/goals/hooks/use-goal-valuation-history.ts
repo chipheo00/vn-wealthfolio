@@ -39,11 +39,10 @@ import type {
   UseGoalValuationHistoryResult,
 } from "../lib/goal-types";
 import {
-  calculateDailyInvestment,
   calculateProjectedValueByDate,
   extractDateString,
   formatGoalDateForApi,
-  getTodayString,
+  getTodayString
 } from "../lib/goal-utils";
 
 // Re-export types for consumers
@@ -202,17 +201,9 @@ export function useGoalValuationHistory(
 
     const aggregatedActuals = aggregateValuationsByPeriod(actualValuesByDate, dateIntervals, period);
 
-    // Calculate daily investment for projections
+    // Calculate daily investment for projections - REMOVED as it's calculated internally now
     const startValue = passedStartValue ?? allocations?.reduce((sum, a) => sum + (a.initialContribution || 0), 0) ?? 0;
     const annualReturnRate = goal.targetReturnRate ?? 0;
-
-    const dailyInvestment = calculateDailyInvestment(
-      startValue,
-      goal.targetAmount,
-      annualReturnRate,
-      goalStartDate,
-      goalDueDate
-    );
 
     // Build chart data points
     const chartData: GoalChartDataPoint[] = [];
@@ -250,10 +241,10 @@ export function useGoalValuationHistory(
           projected = passedProjectedFutureValue;
         } else {
           projected = startValue + calculateProjectedValueByDate(
-            startValue,
-            dailyInvestment,
+            goal.targetAmount,
             annualReturnRate,
             goalStartDate,
+            goalDueDate,
             date
           );
         }

@@ -155,36 +155,40 @@ export function getDaysDiff(startDate: Date, endDate: Date): number {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
 
+
 /**
  * Calculate projected value using compound interest with DAILY compounding (more precise)
  * FV = PMT_daily × [((1 + r)^n - 1) / r]
  *
  * IMPORTANT: Initial contributions (startValue) are EXCLUDED from projection.
  * The projected line shows only growth from daily/monthly contributions.
- * This is intentional - the actual value line will show the full portfolio value
- * including initial contributions.
  *
- * The daily investment is typically back-calculated using calculateDailyInvestment()
- * which DOES account for startValue when determining how much daily contribution is needed.
- *
- * @param _startValue - Initial principal (NOT USED in calculation, kept for API compatibility)
- * @param dailyInvestment - Daily contribution amount
+ * @param targetAmount - Target amount to reach by due date
  * @param annualReturnRate - Annual return rate as percentage (e.g., 7 for 7%)
  * @param startDate - Goal start date
- * @param currentDate - Date to calculate projected value for
+ * @param dueDate - Goal due date
+ * @param queryDate - Date to calculate projected value for
  * @returns Future value from daily contributions only (excludes initial principal)
  */
 export function calculateProjectedValueByDate(
-  _startValue: number,
-  dailyInvestment: number,
+  targetAmount: number,
   annualReturnRate: number,
   startDate: Date,
-  currentDate: Date,
+  dueDate: Date,
+  queryDate: Date,
 ): number {
-  // For dates before goal start, return 0 (no projection yet)
-  if (currentDate < startDate) return 0;
+  // Back-calculate daily investment needed to reach target
+  const dailyInvestment = calculateDailyInvestment(
+    targetAmount,
+    annualReturnRate,
+    startDate,
+    dueDate,
+  );
 
-  const daysFromStart = getDaysDiff(startDate, currentDate);
+  // For dates before goal start, return 0 (no projection yet)
+  if (queryDate < startDate) return 0;
+
+  const daysFromStart = getDaysDiff(startDate, queryDate);
 
   // At goal start date, no contributions yet
   if (daysFromStart === 0) return 0;
@@ -209,23 +213,16 @@ export function calculateProjectedValueByDate(
  * Calculate daily investment needed to reach target value at goal due date
  * Uses daily compounding to back-calculate the required daily contribution
  *
- * Formula: dailyInvestment = (targetValue - PV×(1+r)^n) / [((1+r)^n - 1) / r]
+ * Formula: dailyInvestment = targetValue / [((1+r)^n - 1) / r]
+ * (Assumes starting from 0 for the contribution portion)
  *
- * @param startValue - Initial principal (starting allocation)
  * @param targetValue - Target amount to reach
  * @param annualReturnRate - Annual return rate as percentage (e.g., 8 for 8%)
  * @param startDate - Goal start date
  * @param dueDate - Goal due date (target date)
  * @returns Daily investment amount needed to reach target
- *
- * @example
- * // Need to reach $500M starting with $100M by Dec 31, 2026 at 8% return
- * const daily = calculateDailyInvestment(100000000, 500000000, 8, startDate, dueDate);
- * // dailyInvestment can then be used in calculateProjectedValueByDate()
- * // At dueDate, projected value will equal targetValue
  */
 export function calculateDailyInvestment(
-  startValue: number,
   targetValue: number,
   annualReturnRate: number,
   startDate: Date,
@@ -240,21 +237,18 @@ export function calculateDailyInvestment(
   const dailyRate = annualReturnRate / 100 / 365;
 
   if (dailyRate === 0) {
-    // With 0% return, daily investment is just the remaining amount spread over days
-    return (targetValue - startValue) / totalDays;
+    // With 0% return, daily investment is just the target amount spread over days
+    return targetValue / totalDays;
   }
 
-  // Calculate what the initial principal will grow to
-  const compoundFactor = Math.pow(1 + dailyRate, totalDays);
-  const futurePV = startValue * compoundFactor;
-
   // Back-calculate: how much daily investment is needed?
-  // targetValue = futurePV + dailyInvestment × [((1 + r)^n - 1) / r]
-  // dailyInvestment = (targetValue - futurePV) / [((1 + r)^n - 1) / r]
-  const contributionNeeded = targetValue - futurePV;
+  // targetValue = dailyInvestment × [((1 + r)^n - 1) / r]
+  // dailyInvestment = targetValue / [((1 + r)^n - 1) / r]
+
+  const compoundFactor = Math.pow(1 + dailyRate, totalDays);
   const annuityFactor = (compoundFactor - 1) / dailyRate;
 
-  return contributionNeeded / annuityFactor;
+  return targetValue / annuityFactor;
 }
 
 /**
@@ -274,38 +268,35 @@ export function isGoalOnTrack(currentValue: number, projectedValue: number): boo
  * Determines if a goal is on track with daily precision
  * Uses daily compounding for more accurate projection
  *
- * **Note:** To use this accurately with a fixed target, back-calculate dailyInvestment
- * using `calculateDailyInvestment()` first, which ensures the projected value will
- * match your target at the due date.
+ * IMPORTANT DESIGN DECISION:
+ * On-track comparison uses ONLY projected contributions, NOT including principal growth.
+ * This is intentional - a high initial allocation can "buffer" poor market performance.
  *
- * @param currentValue - Current actual value of the goal
- * @param startValue - Initial principal
- * @param dailyInvestment - Daily contribution amount
+ * @param currentValue - Current actual value of the goal (includes initial contribution + growth)
+ * @param targetAmount - Target amount to reach
  * @param annualReturnRate - Annual return rate as percentage
  * @param startDate - Goal start date
+ * @param dueDate - Goal due date
  * @returns true if on track, false if off track
- *
- * @example
- * // Calculate daily investment needed to reach $500M target
- * const dailyInv = calculateDailyInvestment(100000000, 500000000, 8, startDate, dueDate);
- * // Check if on track with daily precision
- * const onTrack = isGoalOnTrackByDate(currentValue, 100000000, dailyInv, 8, startDate);
  */
 export function isGoalOnTrackByDate(
   currentValue: number,
-  startValue: number,
-  dailyInvestment: number,
+  targetAmount: number,
   annualReturnRate: number,
   startDate: Date,
+  dueDate: Date,
 ): boolean {
   const today = new Date();
+
+  // Calculate projected contributions value (excludes initial principal)
   const projectedValue = calculateProjectedValueByDate(
-    startValue,
-    dailyInvestment,
+    targetAmount,
     annualReturnRate,
     startDate,
+    dueDate,
     today,
   );
+
   return currentValue >= projectedValue;
 }
 

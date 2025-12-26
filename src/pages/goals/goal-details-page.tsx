@@ -30,10 +30,9 @@ import { useGoalValuationHistory } from "./hooks/use-goal-valuation-history";
 // Utilities
 import type { TimePeriodOption } from "./lib/goal-types";
 import {
-  calculateDailyInvestment,
   calculateProjectedValueByDate,
   isGoalOnTrackByDate,
-  parseGoalDate,
+  parseGoalDate
 } from "./lib/goal-utils";
 
 export default function GoalDetailsPage() {
@@ -86,21 +85,17 @@ export default function GoalDetailsPage() {
   // Calculate projectedFutureValue for chart hook
   const chartProjectedFutureValue = useMemo(() => {
     if (!goal || !goal.startDate || !goal.dueDate) return undefined;
-
     const startDate = parseGoalDate(goal.startDate);
     const dueDate = parseGoalDate(goal.dueDate);
-    const startValue = chartStartValue;
     const annualReturnRate = goal.targetReturnRate ?? 0;
 
-    const dailyInvestment = calculateDailyInvestment(
-      startValue,
+    return calculateProjectedValueByDate(
       goal.targetAmount,
       annualReturnRate,
       startDate,
+      dueDate,
       dueDate
     );
-
-    return calculateProjectedValueByDate(startValue, dailyInvestment, annualReturnRate, startDate, dueDate);
   }, [goal, chartStartValue]);
 
   // Use the chart data hook
@@ -143,26 +138,23 @@ export default function GoalDetailsPage() {
   if (goal && goal.startDate && goal.dueDate && goalProgress) {
     const startDate = parseGoalDate(goal.startDate);
     const dueDate = parseGoalDate(goal.dueDate);
-    const startValue = goalProgress.startValue ?? 0;
     const annualReturnRate = goal.targetReturnRate ?? 0;
 
-    const dailyInvestment = calculateDailyInvestment(
-      startValue,
+    projectedFutureValue = calculateProjectedValueByDate(
+      goal.targetAmount,
+      annualReturnRate,
+      startDate,
+      dueDate,
+      dueDate
+    );
+
+    onTrack = isGoalOnTrackByDate(
+      currentAmount,
       goal.targetAmount,
       annualReturnRate,
       startDate,
       dueDate
     );
-
-    projectedFutureValue = calculateProjectedValueByDate(
-      startValue,
-      dailyInvestment,
-      annualReturnRate,
-      startDate,
-      dueDate
-    );
-
-    onTrack = isGoalOnTrackByDate(currentAmount, startValue, dailyInvestment, annualReturnRate, startDate);
   }
 
   // For weeks/months views: Use the last chart point's projected value
