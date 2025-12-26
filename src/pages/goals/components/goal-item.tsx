@@ -1,51 +1,96 @@
+/**
+ * Goal Item Component
+ * Displays a single goal card with progress, status, and optional data fetching
+ */
+
 import { Icons } from "@/components/ui/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Goal, GoalAllocation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
-    formatAmount,
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  formatAmount,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@wealthvn/ui";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useGoalProgress } from "../hooks/use-goal-progress";
+import { useGoalValuationHistory } from "../hooks/use-goal-valuation-history";
 import { GoalOperations } from "./goal-operations";
 
 export interface GoalItemProps {
   goal: Goal;
-  currentValue?: number;
-  progress?: number;
-  isOnTrack?: boolean;
   allocations?: GoalAllocation[];
   totalAccountCount?: number;
   onEdit: (goal: Goal) => void;
   onDelete: (goal: Goal) => void;
   onComplete?: (goal: Goal) => void;
+  // Optional: Pass goals array to enable data fetching
+  // If not provided, use the values below
+  goals?: Goal[];
+  // Pre-calculated values (used when goals array is not provided)
+  currentValue?: number;
+  progress?: number;
+  isOnTrack?: boolean;
 }
 
 export function GoalItem({
   goal,
-  currentValue = 0,
-  progress = 0,
-  isOnTrack = true,
   allocations = [],
   totalAccountCount = 0,
   onEdit,
   onDelete,
   onComplete,
+  goals,
+  currentValue: passedCurrentValue,
+  progress: passedProgress,
+  isOnTrack: passedIsOnTrack,
 }: GoalItemProps) {
   const navigate = useNavigate();
   const { t } = useTranslation("goals");
 
+  // Fetch data if goals array is provided
+  const { getGoalProgress } = useGoalProgress(goals);
+  const goalProgress = goals ? getGoalProgress(goal.id) : undefined;
+
+  // Fetch chart data for this goal to get consistent actual values
+  const { chartData } = useGoalValuationHistory(
+    goals ? goal : undefined,
+    "months",
+    { startValue: goalProgress?.startValue ?? 0 }
+  );
+
+  // Determine final values - use fetched data if available, otherwise use passed props
+  let currentValue = passedCurrentValue ?? 0;
+  let progress = passedProgress ?? 0;
+  let isOnTrack = passedIsOnTrack ?? true;
+
+  if (goals && goalProgress) {
+    // Use fetched data
+    currentValue = goalProgress.currentValue ?? 0;
+    isOnTrack = goalProgress.isOnTrack ?? true;
+
+    // Get chart-consistent current value (same logic as goal-details-page)
+    if (chartData && chartData.length > 0) {
+      for (let i = chartData.length - 1; i >= 0; i--) {
+        if (chartData[i].actual !== null) {
+          currentValue = chartData[i].actual as number;
+          break;
+        }
+      }
+    }
+
+    // Recalculate progress based on chart-consistent value
+    progress = goal.targetAmount > 0
+      ? Math.min((currentValue / goal.targetAmount) * 100, 100)
+      : 0;
+  }
+
   // Calculate allocation stats
   const allocationCount = allocations.length;
-  // Sum of allocation percentages for this goal
   const totalAllocationPercent = allocations.reduce((sum, a) => sum + a.allocatedPercent, 0);
-  // Average allocation: sum of allocations / (total accounts * 100)
-  // e.g., if goal has 50% from account1 + 50% from account2, and there are 2 accounts total:
-  // (50 + 50) / (2 * 100) = 50%
   const averageAllocationPercent =
     totalAccountCount > 0 ? (totalAllocationPercent / (totalAccountCount * 100)) * 100 : 0;
 
@@ -61,7 +106,7 @@ export function GoalItem({
 
     // Check if not started
     if (startDate && startDate > today) {
-      return { text: "", colorVar: "var(--muted-foreground)" }; // No track status for not started
+      return { text: "", colorVar: "var(--muted-foreground)" };
     }
 
     if (isOnTrack) {

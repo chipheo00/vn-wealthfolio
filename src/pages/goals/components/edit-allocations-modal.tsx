@@ -1,13 +1,12 @@
-import { getHistoricalValuations } from "@/commands/portfolio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +20,7 @@ import { Percent } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { calculateAllocationContributedValue, calculateUnallocatedBalance, doDateRangesOverlap } from "../lib/goal-utils";
+import { calculateOtherGoalsPercentage, useAllocationForm } from "../hooks/use-allocation-form";
 
 interface EditAllocationsModalProps {
   open: boolean;
@@ -33,12 +32,6 @@ interface EditAllocationsModalProps {
   allAllocations?: GoalAllocation[]; // All allocations for calculation
   allGoals?: Goal[]; // All goals for checking isAchieved status
   onSubmit: (allocations: GoalAllocation[]) => Promise<void>;
-}
-
-// Type for storing historical values at multiple dates
-interface HistoricalValuesCache {
-  // Key: "accountId:date" -> value
-  [key: string]: number;
 }
 
 export function EditAllocationsModal({
@@ -55,183 +48,22 @@ export function EditAllocationsModal({
   const { t } = useTranslation("goals");
   const queryClient = useQueryClient();
   const [allocations, setAllocations] = useState<Record<string, { allocationAmount: number; allocatedPercent: number }>>({});
-  const [availableBalances, setAvailableBalances] = useState<Record<string, number>>({});
-  // Cache for historical values: key = "accountId:date", value = account value at that date
-  const [historicalValuesCache, setHistoricalValuesCache] = useState<HistoricalValuesCache>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
 
-  // Helper to get cache key
-  const getCacheKey = (accountId: string, date: string) => `${accountId}:${date}`;
-
-  // Helper to parse date string to YYYY-MM-DD format
-  const formatDateString = (date: string | undefined): string | null => {
-    if (!date) return null;
-    return date.split("T")[0];
-  };
-
-  // Helper to check if a goal is completed/achieved
-  // Completed goals' allocations should not be counted in unallocated calculations
-  const isGoalAchieved = (goalId: string): boolean => {
-    const goalInfo = allGoals.find(g => g.id === goalId);
-    return goalInfo?.isAchieved === true;
-  };
-
-  // Fetch historical valuations for:
-  // 1. Current goal's start date (for all accounts)
-  // 2. Each other allocation's start date (for the respective account)
-  useEffect(() => {
-    const fetchHistoricalValues = async () => {
-      if (!open || accounts.length === 0) return;
-
-      setIsFetchingHistory(true);
-      const newCache: HistoricalValuesCache = {};
-
-      try {
-        // Collect all unique (accountId, date) pairs we need to fetch
-        const fetchRequests: Array<{ accountId: string; date: string }> = [];
-
-        // 1. Current goal's start date for all accounts
-        const currentGoalStartDate = formatDateString(goal.startDate);
-        if (currentGoalStartDate) {
-          for (const account of accounts) {
-            fetchRequests.push({ accountId: account.id, date: currentGoalStartDate });
-          }
-        }
-
-        // 2. Other allocations' start dates (for their respective accounts)
-        for (const alloc of allAllocations) {
-          if (alloc.goalId === goal.id) continue; // Skip current goal's allocations
-
-          // Use allocationDate or startDate from the allocation (startDate is backfilled from goal)
-          const allocStartDate = formatDateString(alloc.allocationDate || alloc.startDate);
-          if (allocStartDate) {
-            fetchRequests.push({ accountId: alloc.accountId, date: allocStartDate });
-          }
-        }
-
-        // Deduplicate requests
-        const uniqueRequests = Array.from(
-          new Map(fetchRequests.map(r => [getCacheKey(r.accountId, r.date), r])).values()
-        );
-
-        // Fetch all values in parallel
-        await Promise.all(
-          uniqueRequests.map(async ({ accountId, date }) => {
-            try {
-              const valuations = await getHistoricalValuations(accountId, date, date);
-              if (valuations && valuations.length > 0) {
-                newCache[getCacheKey(accountId, date)] = valuations[0].totalValue;
-              } else {
-                // If no exact match, try a 7-day window
-                const endDate = new Date(date);
-                endDate.setDate(endDate.getDate() + 7);
-                const rangeValuations = await getHistoricalValuations(
-                  accountId,
-                  date,
-                  endDate.toISOString().split("T")[0]
-                );
-                if (rangeValuations && rangeValuations.length > 0) {
-                  newCache[getCacheKey(accountId, date)] = rangeValuations[0].totalValue;
-                } else {
-                  newCache[getCacheKey(accountId, date)] = 0;
-                }
-              }
-            } catch (err) {
-              console.error(`Failed to fetch history for account ${accountId} on ${date}`, err);
-              newCache[getCacheKey(accountId, date)] = 0;
-            }
-          })
-        );
-
-        setHistoricalValuesCache(newCache);
-      } catch (error) {
-        console.error("Error fetching historical valuations", error);
-      } finally {
-        setIsFetchingHistory(false);
-      }
-    };
-
-    fetchHistoricalValues();
-  }, [open, goal.startDate, accounts, allAllocations, goal.id]);
-
-  // Calculate available balances using TIME-AWARE logic
-  // For each account:
-  // 1. Get account value at current goal's start date
-  // 2. For each OTHER goal's allocation on this account:
-  //    - Calculate its contributed value at current goal's start date
-  // 3. Unallocated balance = Account value - Sum of other allocations' contributed values
-  const calculateAvailableBalances = () => {
-    const balances: Record<string, number> = {};
-
-    // Current goal's start date
-    const currentGoalStartDate = formatDateString(goal.startDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const goalStartDateObj = goal.startDate ? new Date(goal.startDate) : null;
-    const isPastGoal = goalStartDateObj && goalStartDateObj <= today;
-
-    for (const account of accounts) {
-      // Get account value at current goal's start date
-      let accountValueAtGoalStart: number;
-      if (isPastGoal && currentGoalStartDate) {
-        accountValueAtGoalStart = historicalValuesCache[getCacheKey(account.id, currentGoalStartDate)] ?? 0;
-      } else {
-        // Future goal: use current account value
-        accountValueAtGoalStart = currentAccountValues.get(account.id) || 0;
-      }
-
-      // Calculate contributed values from OTHER goals' allocations at current goal's start date
-      const otherAllocationsContributedValues: number[] = [];
-
-      for (const alloc of allAllocations) {
-        // Skip current goal's allocations
-        if (alloc.goalId === goal.id) continue;
-        // Skip allocations for other accounts
-        if (alloc.accountId !== account.id) continue;
-        // Skip completed goals' allocations - they are released
-        if (isGoalAchieved(alloc.goalId)) continue;
-
-        // Get allocation's start date (allocationDate or startDate which is backfilled from goal)
-        const allocStartDate = formatDateString(alloc.allocationDate || alloc.startDate);
-        if (!allocStartDate) continue;
-
-        // Get account value at allocation's start date
-        const accountValueAtAllocStart = historicalValuesCache[getCacheKey(account.id, allocStartDate)] ?? 0;
-
-        // Calculate contributed value at current goal's start date
-        const allocStartDateObj = new Date(allocStartDate);
-        const queryDateObj = goalStartDateObj || today;
-
-        const contributedValue = calculateAllocationContributedValue(
-          alloc.initialContribution || 0,
-          alloc.allocatedPercent || 0,
-          accountValueAtAllocStart,
-          accountValueAtGoalStart,
-          allocStartDateObj,
-          queryDateObj
-        );
-
-        otherAllocationsContributedValues.push(contributedValue);
-      }
-
-      // Calculate unallocated balance
-      balances[account.id] = calculateUnallocatedBalance(
-        accountValueAtGoalStart,
-        otherAllocationsContributedValues
-      );
-    }
-
-    setAvailableBalances(balances);
-  };
-
-  // Initialize and Recalculate when dependencies change
-  useEffect(() => {
-    if (open) {
-      calculateAvailableBalances();
-    }
-  }, [open, historicalValuesCache, allAllocations, currentAccountValues, accounts, goal.startDate]); // Re-run when history loads
+  // Use the shared allocation form hook
+  const {
+    availableBalances,
+    isFetchingHistory,
+    isGoalAchieved,
+  } = useAllocationForm({
+    goal,
+    accounts,
+    currentAccountValues,
+    allAllocations,
+    allGoals,
+    open,
+  });
 
   // Initial Data Refetch
   useEffect(() => {
@@ -321,13 +153,14 @@ export function EditAllocationsModal({
       }
 
       // Check total percentage across all goals for this account
-      // Sum percentages from other goals
-      const otherGoalsPercentage = allAllocations.reduce((sum, existingAlloc) => {
-        if (existingAlloc.accountId === account.id && existingAlloc.goalId !== goal.id) {
-          return sum + (existingAlloc.allocatedPercent || 0);
-        }
-        return sum;
-      }, 0);
+      const otherGoalsPercentage = calculateOtherGoalsPercentage(
+        account.id,
+        goal.id,
+        goal.startDate,
+        goal.dueDate,
+        allAllocations,
+        isGoalAchieved
+      );
 
       const totalPercentage = otherGoalsPercentage + alloc.allocatedPercent;
       if (totalPercentage > 100) {
@@ -363,14 +196,13 @@ export function EditAllocationsModal({
 
          if (existingAlloc) {
            // Update existing allocation record with new values
-           // Don't override allocationDate - let backend backfill from goal dates if needed
            updatedAllocations.push({
              ...existingAlloc,
              initialContribution: allocationAmount,
              allocatedPercent: allocatedPercent,
-             allocationAmount: allocationAmount, // Required deprecated field
-             percentAllocation: 0, // Required deprecated field
-           } as any);
+             allocationAmount: allocationAmount,
+             percentAllocation: 0,
+           } as GoalAllocation);
          } else {
            // Create new allocation if it doesn't exist
            updatedAllocations.push({
@@ -379,9 +211,9 @@ export function EditAllocationsModal({
              accountId: account.id,
              initialContribution: allocationAmount,
              allocatedPercent: allocatedPercent,
-             allocationAmount: allocationAmount, // Required deprecated field
-             percentAllocation: 0, // Required deprecated field
-           } as any);
+             allocationAmount: allocationAmount,
+             percentAllocation: 0,
+           } as GoalAllocation);
          }
        }
 
@@ -398,7 +230,6 @@ export function EditAllocationsModal({
       ]);
 
       handleOpenChange(false);
-      // Note: toast is handled by the mutation's onSuccess handler
     } catch (err) {
       toast.error(t("editAllocationsModal.saveFailed"), {
         description: err instanceof Error ? err.message : t("editAllocationsModal.unknownError"),
@@ -442,30 +273,14 @@ export function EditAllocationsModal({
               const hasError = errors[account.id];
 
               // Calculate what's already allocated to other goals (percentage)
-              // Only count allocations from goals that OVERLAP with current goal's time period
-              // Skip completed goals - their allocations are released
-              const otherGoalsPercent = allAllocations.reduce((sum, existingAlloc) => {
-                if (existingAlloc.accountId === account.id && existingAlloc.goalId !== goal.id) {
-                  // Skip completed goals' allocations - they are released
-                  if (isGoalAchieved(existingAlloc.goalId)) {
-                    return sum;
-                  }
-
-                  // Check if the other allocation's time period overlaps with current goal
-                  // Use startDate/endDate from the allocation (backfilled from goal dates)
-                  const overlaps = doDateRangesOverlap(
-                    goal.startDate,      // Current goal start
-                    goal.dueDate,        // Current goal end
-                    existingAlloc.startDate,  // Other allocation start
-                    existingAlloc.endDate     // Other allocation end
-                  );
-
-                  if (overlaps) {
-                    return sum + (existingAlloc.allocatedPercent || 0);
-                  }
-                }
-                return sum;
-              }, 0);
+              const otherGoalsPercent = calculateOtherGoalsPercentage(
+                account.id,
+                goal.id,
+                goal.startDate,
+                goal.dueDate,
+                allAllocations,
+                isGoalAchieved
+              );
 
               // Current user input for this goal
               const currentInputAmount = alloc?.allocationAmount || 0;
@@ -494,7 +309,6 @@ export function EditAllocationsModal({
                         <div className="flex items-center justify-between">
                           <div className="font-semibold text-base flex items-center gap-2">
                             {account.name}
-                            {/* Account Type or Icon could go here */}
                           </div>
                           <Badge variant="secondary" className="font-mono text-xs">{account.currency}</Badge>
                         </div>

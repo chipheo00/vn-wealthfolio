@@ -11,7 +11,6 @@ import { useTranslation } from "react-i18next";
 import GoalsAllocations from "./components/goal-allocations";
 import { GoalEditModal } from "./components/goal-edit-modal";
 import { GoalItem } from "./components/goal-item";
-import { GoalItemWithChart } from "./components/goal-item-with-chart";
 import { useGoalMutations } from "./hooks/use-goal-mutations";
 
 const GoalsPage = () => {
@@ -118,7 +117,7 @@ const GoalsPage = () => {
                   const goalAllocations = allocations?.filter((a) => a.goalId === goal.id) ?? [];
 
                   return (
-                    <GoalItemWithChart
+                    <GoalItem
                       key={goal.id}
                       goal={goal}
                       goals={goals}
