@@ -2,21 +2,21 @@ import { invoke } from "@tauri-apps/api/core";
 import type { EventCallback, UnlistenFn } from "@tauri-apps/api/event";
 import { listen } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { BaseDirectory, writeFile } from "@tauri-apps/plugin-fs";
+import { BaseDirectory, readFile, writeFile } from "@tauri-apps/plugin-fs";
 import { debug, error, info, trace, warn } from "@tauri-apps/plugin-log";
 
 export type { EventCallback, UnlistenFn };
 
-import type {
-  AddonInstallResult,
-  AddonManifest,
-  AddonUpdateCheckResult,
-  AddonUpdateInfo,
-  AddonValidationResult,
-  AddonFile as BaseAddonFile,
-  FunctionPermission,
-  Permission,
-} from "@wealthvn/addon-sdk";
+    import type {
+        AddonInstallResult,
+        AddonManifest,
+        AddonUpdateCheckResult,
+        AddonUpdateInfo,
+        AddonValidationResult,
+        AddonFile as BaseAddonFile,
+        FunctionPermission,
+        Permission,
+    } from "@wealthvn/addon-sdk";
 
 // Tauri-specific types with camelCase serialization to match Rust
 export interface AddonFile extends Omit<BaseAddonFile, "is_main"> {
@@ -25,13 +25,13 @@ export interface AddonFile extends Omit<BaseAddonFile, "is_main"> {
 
 // Re-export SDK types directly
 export type {
-  AddonInstallResult,
-  AddonManifest,
-  AddonUpdateCheckResult,
-  AddonUpdateInfo,
-  AddonValidationResult,
-  FunctionPermission,
-  Permission,
+    AddonInstallResult,
+    AddonManifest,
+    AddonUpdateCheckResult,
+    AddonUpdateInfo,
+    AddonValidationResult,
+    FunctionPermission,
+    Permission
 };
 
 export interface ExtractedAddon {
@@ -207,4 +207,17 @@ export const logger = {
   warn,
   trace,
   debug,
+};
+
+export const readBinaryFileTauri = async (path: string): Promise<Uint8Array> => {
+  return await readFile(path);
+};
+
+export const openAddonZipFileDialogTauri = async (): Promise<string | null> => {
+  const selected = await open({
+    filters: [{ name: "Addon Packages", extensions: ["zip"] }],
+    multiple: false,
+  });
+  if (Array.isArray(selected)) return selected[0] ?? null;
+  return selected;
 };

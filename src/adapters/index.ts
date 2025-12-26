@@ -31,20 +31,10 @@ export const logger = getRunEnv() === RUN_ENV.DESKTOP ? tauri.logger : web.logge
 export type { EventCallback, UnlistenFn } from "./tauri";
 
 export {
-  openCsvFileDialogTauri,
-  openFolderDialogTauri,
-  openDatabaseFileDialogTauri,
-  listenFileDropHoverTauri,
-  listenFileDropTauri,
-  listenFileDropCancelledTauri,
-  listenPortfolioUpdateStartTauri,
-  listenPortfolioUpdateCompleteTauri,
-  listenDatabaseRestoredTauri,
-  listenPortfolioUpdateErrorTauri,
-  openFileSaveDialogTauri,
-  listenMarketSyncCompleteTauri,
+  listenDatabaseRestoredTauri, listenFileDropCancelledTauri, listenFileDropHoverTauri,
+  listenFileDropTauri, listenMarketSyncCompleteTauri,
   listenMarketSyncStartTauri,
-  listenNavigateToRouteTauri,
+  listenNavigateToRouteTauri, listenPortfolioUpdateCompleteTauri, listenPortfolioUpdateErrorTauri, listenPortfolioUpdateStartTauri, openAddonZipFileDialogTauri, openCsvFileDialogTauri, openDatabaseFileDialogTauri, openFileSaveDialogTauri, openFolderDialogTauri, readBinaryFileTauri
 } from "./tauri";
 
 export * from "./web";

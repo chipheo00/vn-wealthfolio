@@ -1,5 +1,5 @@
 import { logger } from "@/adapters";
-import { reloadAllAddons } from "@/addons/addons-core";
+import { reloadAllAddons } from "@/addons/addons-loader";
 import { createAddonContext } from "./addons-runtime-context";
 
 interface DevModeConfig {

@@ -1,9 +1,9 @@
 import { logger } from "@/adapters";
 import {
-  createAddonContext,
-  getDynamicNavItems,
-  getDynamicRoutes,
-  triggerAllDisableCallbacks,
+    createAddonContext,
+    getDynamicNavItems,
+    getDynamicRoutes,
+    triggerAllDisableCallbacks,
 } from "@/addons/addons-runtime-context";
 import { getInstalledAddons, loadAddon as loadAddonRuntime } from "@/commands/addon";
 import type { AddonContext, AddonManifest } from "@wealthvn/addon-sdk";
@@ -278,16 +278,4 @@ export function debugAddonState(): void {
   logger.info(`- Dynamic nav items: ${JSON.stringify(getDynamicNavItems())}`);
   logger.info(`- Dynamic routes: ${JSON.stringify(getDynamicRoutes())}`);
   logger.info(`- Loaded addons: ${JSON.stringify(getLoadedAddons())}`);
-}
-
-/**
- * Reloads all addons (useful for development and settings)
- * This function dynamically imports the full plugin loader to avoid circular dependencies
- */
-export async function reloadAllAddons(): Promise<void> {
-  unloadAllAddons();
-
-  // Dynamically import the full plugin loader to avoid importing dev mode
-  const { loadAllAddons } = await import("./addons-loader");
-  await loadAllAddons();
 }

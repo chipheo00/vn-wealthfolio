@@ -21,8 +21,8 @@
   },
   "productName": "WealthVN",
   "mainBinaryName": "WealthVN",
-  "version": "1.0.4",
-  "identifier": "com.wealthvn.app",
+  "version": "1.0.5",
+  "identifier": "com.wealthvn.chipheo00",
   "plugins": {},
   "app": {
     "withGlobalTauri": true,

@@ -1,20 +1,26 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
-import { getRunEnv, RUN_ENV, logger as envLogger } from "@/adapters";
-
-import { reloadAllAddons } from "@/addons/addons-core";
 import {
-  installAddon,
+  logger as envLogger,
+  getRunEnv,
+  openAddonZipFileDialogTauri,
+  readBinaryFileTauri,
+  RUN_ENV,
+} from "@/adapters";
+import { useToast } from "@/components/ui/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+
+import type { ExtractedAddon, InstalledAddon, Permission } from "@/adapters/tauri";
+import { reloadAllAddons } from "@/addons/addons-loader";
+import {
+  clearAddonStaging,
+  extractAddon,
   getInstalledAddons,
+  installAddon,
   toggleAddon,
   uninstallAddon,
-  extractAddon,
-  clearAddonStaging,
 } from "@/commands/addon";
-import type { InstalledAddon, Permission, ExtractedAddon } from "@/adapters/tauri";
-import type { RiskLevel, AddonManifest } from "@wealthvn/addon-sdk";
 import { QueryKeys } from "@/lib/query-keys";
+import type { AddonManifest, RiskLevel } from "@wealthvn/addon-sdk";
 
 interface PermissionDialogState {
   open: boolean;
@@ -77,22 +83,14 @@ export function useAddonActions() {
     try {
       setIsLoading(true);
       if (getRunEnv() === RUN_ENV.DESKTOP) {
-        // Dynamically import Tauri APIs in desktop to avoid bundling in web
-        const { open } = await import("@tauri-apps/plugin-dialog");
-        const { readFile } = await import("@tauri-apps/plugin-fs");
+        const filePath = await openAddonZipFileDialogTauri();
 
-        // Open file dialog for ZIP files only
-        const filePath = await open({
-          filters: [{ name: "Addon Packages", extensions: ["zip"] }],
-          multiple: false,
-        });
-
-        if (!filePath || Array.isArray(filePath)) {
+        if (!filePath) {
           return;
         }
 
         // Read the ZIP file (desktop)
-        const fileData = await readFile(filePath);
+        const fileData = await readBinaryFileTauri(filePath);
         await handleInstallZipAddon(filePath, fileData);
         return;
       }
