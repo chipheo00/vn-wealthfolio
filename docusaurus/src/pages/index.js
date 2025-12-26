@@ -34,6 +34,9 @@ function HeroSection() {
             <Link className="btn btn-primary" to="https://github.com/chipheo00/vn-wealthfolio/releases">
               <span>⬇️</span> Tải Xuống Ngay
             </Link>
+            <Link className="btn btn-discord" to="https://discord.gg/r8t8NbP6">
+              <span>💬</span> Tham Gia Discord
+            </Link>
           </div>
           <div className="hero-stats">
             <div className="stat-item">
@@ -345,6 +348,9 @@ function CTASection() {
         <div className="cta-buttons">
           <Link className="btn btn-primary btn-large" to="https://github.com/chipheo00/vn-wealthfolio/releases">
             <span>🚀</span> Tải Xuống Ngay
+          </Link>
+          <Link className="btn btn-discord btn-large" to="https://discord.gg/r8t8NbP6">
+            <span>💬</span> Tham Gia Discord
           </Link>
           <Link className="btn btn-ghost" to="/docs/intro">
             Tìm Hiểu Thêm →
