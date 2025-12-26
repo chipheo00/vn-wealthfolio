@@ -116,7 +116,7 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
                 {/* Unallocated Row */}
                 <tr>
                   <td className="bg-muted text-muted-foreground sticky left-0 z-10 border-t border-r px-4 py-2 text-xs">
-                    Unallocated
+                    {t("allocations.unallocated")}
                   </td>
                   {accounts.map((account) => {
                     const remainingPercent = Math.max(0, 100 - (totalAllocations[account.id] || 0));
@@ -147,7 +147,7 @@ const GoalsAllocations: React.FC<GoalsAllocationsProps> = ({
                 <tr>
                   <td className="bg-muted sticky left-0 z-10 border-t border-r p-0 text-xs font-semibold">
                     <div className="p-2">
-                      <span>Unallocated</span>
+                      <span>{t("allocations.unallocated")}</span>
                     </div>
                   </td>
                   {accounts.map((account) => {

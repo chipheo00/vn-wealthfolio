@@ -86,6 +86,7 @@
   "allocations": {
     "tableHeader": "Tài khoản",
     "totalRow": "Tổng cộng",
+    "unallocated": "Chưa phân bổ",
     "config": "Cấu hình phân bổ",
     "saveButton": "Lưu phân bổ",
     "toast": {
@@ -135,7 +136,7 @@
       "notSet": "Chưa thiết lập",
       "targetReturnRate": "Tỷ suất sinh lời mục tiêu",
       "timeRemaining": "Thời gian còn lại",
-      "projectedFutureValue": "Giá trị tương lai dự phóng"
+      "projectedFutureValue": "Giá trị dự phóng"
     },
     "allocations": {
       "title": "Phân bổ",

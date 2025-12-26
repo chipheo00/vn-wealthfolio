@@ -86,6 +86,7 @@
   "allocations": {
     "tableHeader": "Account",
     "totalRow": "Total",
+    "unallocated": "Unallocated",
     "config": "Config Allocation",
     "saveButton": "Save Allocations",
     "toast": {
