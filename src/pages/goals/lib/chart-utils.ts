@@ -17,11 +17,10 @@ import {
     getWeek,
     isAfter,
     isBefore,
-    isEqual,
     startOfDay,
     subMonths,
     subWeeks,
-    subYears,
+    subYears
 } from "date-fns";
 import type { DateRange, TimePeriodOption } from "./goal-types";
 
@@ -216,37 +215,17 @@ export function isInSamePeriodAsIntervals(date: Date, intervals: Date[], period:
 
 /**
  * Detect if a date is a special boundary (start or end of goal)
- * Only returns a label if this date is explicitly a boundary date that was added separately
- * For weeks/months: Don't show "End" label as the due date is added for projection purposes only
+ * Currently disabled - all dates use normal formatting
+ * @deprecated No longer used - kept for potential future use
  */
 export function getSpecialDateLabel(
-  date: Date,
-  goalStartDate: Date,
-  goalDueDate: Date,
-  period: TimePeriodOption,
-  isExplicitBoundaryDate: boolean = false
+  _date: Date,
+  _goalStartDate: Date,
+  _goalDueDate: Date,
+  _period: TimePeriodOption,
+  _isExplicitBoundaryDate: boolean = false
 ): string | null {
-  const isStartDate =
-    isEqual(startOfDay(date), startOfDay(goalStartDate)) ||
-    format(date, "yyyy-MM-dd") === format(goalStartDate, "yyyy-MM-dd");
-
-  const isEndDate =
-    isEqual(startOfDay(date), startOfDay(goalDueDate)) ||
-    format(date, "yyyy-MM-dd") === format(goalDueDate, "yyyy-MM-dd");
-
-  // For "years" and "all" views, show both Start and End labels
-  if (period === "years" || period === "all") {
-    if (isStartDate) return "Start";
-    if (isEndDate) return "End";
-    return null;
-  }
-
-  // For weeks/months: Only show "Start" label on the exact goal start date
-  // Don't show "End" label - the due date is just used for projections, not as a display boundary
-  if (isStartDate && isExplicitBoundaryDate) {
-    return "Start";
-  }
-
+  // No special labels - all dates use normal formatting
   return null;
 }
 

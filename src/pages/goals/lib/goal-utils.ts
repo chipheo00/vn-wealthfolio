@@ -34,16 +34,20 @@ export function extractDateString(isoDateString: string | undefined): string | u
  * Parses an ISO date string to a Date object, extracting only the date portion
  * to avoid timezone conversion issues.
  *
- * @param isoDateString - ISO date string like "2025-01-01T17:00:00.000Z"
+ * @param isoDateString - ISO date string like "2025-01-01T17:00:00.000Z" or "2025-01-01"
  * @returns Date object representing the date at midnight local time
  *
  * @example
  * parseGoalDate("2025-01-01T17:00:00.000Z") // Returns Date for 2025-01-01 00:00:00 local
+ * parseGoalDate("2025-01-01") // Returns Date for 2025-01-01 00:00:00 local
  */
 export function parseGoalDate(isoDateString: string): Date {
   // Extract date portion first to avoid timezone issues
   const dateOnly = isoDateString.split("T")[0];
-  return parseISO(dateOnly);
+  // Parse year, month, day explicitly to create local midnight
+  // This avoids parseISO potentially treating date-only strings as UTC
+  const [year, month, day] = dateOnly.split("-").map(Number);
+  return new Date(year, month - 1, day); // month is 0-indexed
 }
 
 /**

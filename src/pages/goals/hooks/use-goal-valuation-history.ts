@@ -11,7 +11,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   format,
   isBefore,
-  parseISO,
   startOfDay
 } from "date-fns";
 import { useMemo } from "react";
@@ -42,7 +41,8 @@ import {
   calculateProjectedValueByDate,
   extractDateString,
   formatGoalDateForApi,
-  getTodayString
+  getTodayString,
+  parseGoalDate
 } from "../lib/goal-utils";
 
 // Re-export types for consumers
@@ -100,7 +100,7 @@ export function useGoalValuationHistory(
     // End date: due date + 1 year, or today + 1 year
     let endDateStr: string;
     if (goalDueDateStr) {
-      const dueDate = parseISO(goalDueDateStr);
+      const dueDate = parseGoalDate(goalDueDateStr);
       dueDate.setFullYear(dueDate.getFullYear() + 1);
       endDateStr = format(dueDate, "yyyy-MM-dd");
     } else {
@@ -148,12 +148,15 @@ export function useGoalValuationHistory(
   const chartDataResult = useMemo((): { chartData: GoalChartDataPoint[]; allocationValues: Map<string, number> } => {
     if (!goal || !dateRange) return { chartData: [], allocationValues: new Map() };
 
-    const goalStartDate = parseISO(dateRange.goalStartDate);
+    // Use parseGoalDate instead of parseISO to avoid timezone issues
+    // parseISO("2025-01-01") may be interpreted as UTC midnight, which in
+    // Vietnam timezone (UTC+7) becomes Dec 31, 2024 at 5pm
+    const goalStartDate = parseGoalDate(dateRange.goalStartDate);
     const today = startOfDay(new Date());
 
     // Use utility to extract date portion (avoids timezone conversion issues)
     const goalDueDateStr = formatGoalDateForApi(goal.dueDate, dateRange.endDate);
-    const goalDueDate = parseISO(goalDueDateStr);
+    const goalDueDate = parseGoalDate(goalDueDateStr);
 
     // Calculate display date range
     const { displayStart, displayEnd } = calculateDisplayDateRange(
