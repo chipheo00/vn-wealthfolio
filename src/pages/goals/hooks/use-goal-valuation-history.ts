@@ -4,28 +4,35 @@ import { QueryKeys } from "@/lib/query-keys";
 import type { AccountValuation, Goal, GoalAllocation } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import {
-    addDays,
-    addMonths,
-    addWeeks,
-    addYears,
-    eachMonthOfInterval,
-    eachWeekOfInterval,
-    eachYearOfInterval,
-    endOfMonth,
-    endOfWeek,
-    endOfYear,
-    format,
-    isAfter,
-    isBefore,
-    isEqual,
-    parseISO,
-    startOfDay,
-    subMonths,
-    subWeeks,
-    subYears,
+  addDays,
+  addMonths,
+  addWeeks,
+  addYears,
+  eachMonthOfInterval,
+  eachWeekOfInterval,
+  eachYearOfInterval,
+  endOfMonth,
+  endOfWeek,
+  endOfYear,
+  format,
+  isAfter,
+  isBefore,
+  isEqual,
+  parseISO,
+  startOfDay,
+  subMonths,
+  subWeeks,
+  subYears,
 } from "date-fns";
 import { useMemo } from "react";
-import { calculateDailyInvestment, calculateProjectedValueByDate } from "../lib/goal-utils";
+import {
+  calculateDailyInvestment,
+  calculateProjectedValueByDate,
+  extractDateString,
+  formatGoalDateForApi,
+  getAllocationStartDate,
+  getTodayString,
+} from "../lib/goal-utils";
 
 // ============ TYPES ============
 export type TimePeriodOption = "weeks" | "months" | "years" | "all";
@@ -236,12 +243,12 @@ function buildAllocationDetailsMap(
 
   allocations?.forEach((alloc) => {
     if (alloc.goalId === goalId) {
-      // Use allocationDate, or fallback to startDate (backfilled from goal), or goalStartDate
-      const allocStartDate = alloc.allocationDate || alloc.startDate || goalStartDate;
+      // Use utility to get allocation start date with proper fallbacks
+      const startDate = getAllocationStartDate(alloc.allocationDate, alloc.startDate, goalStartDate);
       detailsMap.set(alloc.accountId, {
         percentage: alloc.allocatedPercent / 100,
         initialContribution: alloc.initialContribution,
-        startDate: allocStartDate ? allocStartDate.split("T")[0] : goalStartDate.split("T")[0],
+        startDate,
       });
     }
   });
@@ -288,7 +295,7 @@ function calculateActualValuesByDate(
 
         if (valuation && valuations) {
           let startAccountValue = 0;
-          const baselineDate = startDate || goalStartDate.split("T")[0];
+          const baselineDate = startDate || extractDateString(goalStartDate);
 
           if (baselineDate) {
             const startValuation = valuations.find((v) => v.valuationDate === baselineDate);
@@ -504,24 +511,31 @@ export function useGoalValuationHistory(
   const dateRange = useMemo((): DateRangeConfig | null => {
     if (!goal) return null;
 
-    const today = new Date();
-    let goalStartDate: Date;
+    const todayStr = getTodayString();
 
-    if (goal.startDate) {
-      goalStartDate = parseISO(goal.startDate);
+    // Use utilities to extract date portions (avoids timezone conversion issues)
+    const goalStartDateStr = formatGoalDateForApi(goal.startDate, todayStr);
+    const goalDueDateStr = extractDateString(goal.dueDate);
+
+    // For data fetching range, use the earlier of today or goal start
+    const dataStartDate = goalStartDateStr > todayStr ? todayStr : goalStartDateStr;
+
+    // End date: due date + 1 year, or today + 1 year
+    let endDateStr: string;
+    if (goalDueDateStr) {
+      const dueDate = parseISO(goalDueDateStr);
+      dueDate.setFullYear(dueDate.getFullYear() + 1);
+      endDateStr = format(dueDate, "yyyy-MM-dd");
     } else {
-      goalStartDate = new Date();
-      goalStartDate.setFullYear(goalStartDate.getFullYear() - 1);
+      const endDate = new Date();
+      endDate.setFullYear(endDate.getFullYear() + 1);
+      endDateStr = format(endDate, "yyyy-MM-dd");
     }
 
-    const dataStartDate = isAfter(goalStartDate, today) ? today : goalStartDate;
-    const endDate = goal.dueDate ? parseISO(goal.dueDate) : new Date();
-    endDate.setFullYear(endDate.getFullYear() + 1);
-
     return {
-      startDate: format(dataStartDate, "yyyy-MM-dd"),
-      endDate: format(endDate, "yyyy-MM-dd"),
-      goalStartDate: format(goalStartDate, "yyyy-MM-dd"),
+      startDate: dataStartDate,
+      endDate: endDateStr,
+      goalStartDate: goalStartDateStr,
     };
   }, [goal]);
 
@@ -556,10 +570,11 @@ export function useGoalValuationHistory(
     if (!goal || !dateRange) return { chartData: [], allocationValues: new Map() };
 
     const goalStartDate = parseISO(dateRange.goalStartDate);
-    const endDate = parseISO(dateRange.endDate);
     const today = startOfDay(new Date());
 
-    const goalDueDate = goal.dueDate ? parseISO(goal.dueDate) : endDate;
+    // Use utility to extract date portion (avoids timezone conversion issues)
+    const goalDueDateStr = formatGoalDateForApi(goal.dueDate, dateRange.endDate);
+    const goalDueDate = parseISO(goalDueDateStr);
 
     // For weeks/months: display is centered around today, only clamping end to goalDueDate
     // For years/all: display is constrained to goal boundaries

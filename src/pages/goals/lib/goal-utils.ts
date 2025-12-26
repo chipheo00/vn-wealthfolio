@@ -1,6 +1,104 @@
 import type { Goal } from "@/lib/types";
 import { format, isAfter, parseISO } from "date-fns";
 
+// ============================================================================
+// DATE UTILITIES FOR GOALS MODULE
+// ============================================================================
+// These utilities ensure consistent date handling across the goals module,
+// avoiding timezone conversion issues when working with ISO date strings.
+//
+// Problem: Dates stored as "2025-01-01T17:00:00.000Z" (5pm UTC) get converted
+// to "2025-01-02" in Vietnam timezone (UTC+7) when parsed and formatted.
+//
+// Solution: Extract the date portion directly from the ISO string before
+// any timezone-aware operations.
+// ============================================================================
+
+/**
+ * Extracts the date portion (YYYY-MM-DD) from an ISO date string.
+ * This avoids timezone conversion issues.
+ *
+ * @param isoDateString - ISO date string like "2025-01-01T17:00:00.000Z"
+ * @returns Date string in "YYYY-MM-DD" format, or undefined if input is undefined
+ *
+ * @example
+ * extractDateString("2025-01-01T17:00:00.000Z") // Returns "2025-01-01"
+ * extractDateString(undefined) // Returns undefined
+ */
+export function extractDateString(isoDateString: string | undefined): string | undefined {
+  if (!isoDateString) return undefined;
+  return isoDateString.split("T")[0];
+}
+
+/**
+ * Parses an ISO date string to a Date object, extracting only the date portion
+ * to avoid timezone conversion issues.
+ *
+ * @param isoDateString - ISO date string like "2025-01-01T17:00:00.000Z"
+ * @returns Date object representing the date at midnight local time
+ *
+ * @example
+ * parseGoalDate("2025-01-01T17:00:00.000Z") // Returns Date for 2025-01-01 00:00:00 local
+ */
+export function parseGoalDate(isoDateString: string): Date {
+  // Extract date portion first to avoid timezone issues
+  const dateOnly = isoDateString.split("T")[0];
+  return parseISO(dateOnly);
+}
+
+/**
+ * Safely parses an optional ISO date string to a Date object.
+ * Returns undefined if the input is undefined or empty.
+ *
+ * @param isoDateString - Optional ISO date string
+ * @returns Date object or undefined
+ */
+export function parseGoalDateOptional(isoDateString: string | undefined): Date | undefined {
+  if (!isoDateString) return undefined;
+  return parseGoalDate(isoDateString);
+}
+
+/**
+ * Gets the allocation start date, with fallbacks.
+ * Priority: allocationDate > startDate > goalStartDate
+ * Returns the date in YYYY-MM-DD format.
+ *
+ * @param allocationDate - Specific allocation date (optional)
+ * @param startDate - Allocation's start date (optional)
+ * @param goalStartDate - Goal's start date as fallback
+ * @returns Date string in YYYY-MM-DD format
+ */
+export function getAllocationStartDate(
+  allocationDate: string | undefined,
+  startDate: string | undefined,
+  goalStartDate: string
+): string {
+  const rawDate = allocationDate || startDate || goalStartDate;
+  return rawDate.split("T")[0];
+}
+
+/**
+ * Formats a goal date for API calls (YYYY-MM-DD format).
+ * Safely handles undefined inputs.
+ *
+ * @param isoDateString - ISO date string
+ * @param fallback - Fallback value if input is undefined
+ * @returns Date string in YYYY-MM-DD format
+ */
+export function formatGoalDateForApi(isoDateString: string | undefined, fallback: string): string {
+  if (!isoDateString) return fallback;
+  return isoDateString.split("T")[0];
+}
+
+/**
+ * Gets today's date in YYYY-MM-DD format
+ * @returns Today's date string
+ */
+export function getTodayString(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}
+
+
 /**
  * Calculate projected value using compound interest formula with regular contributions (MONTHLY compounding)
  *

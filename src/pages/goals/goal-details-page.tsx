@@ -7,7 +7,6 @@ import { QueryKeys } from "@/lib/query-keys";
 import type { Goal, GoalAllocation } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatedToggleGroup, Button, formatAmount, Icons, Page, Skeleton } from "@wealthvn/ui";
-import { parseISO } from "date-fns";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -32,6 +31,7 @@ import {
   calculateDailyInvestment,
   calculateProjectedValueByDate,
   isGoalOnTrackByDate,
+  parseGoalDate,
 } from "./lib/goal-utils";
 
 export default function GoalDetailsPage() {
@@ -88,8 +88,9 @@ export default function GoalDetailsPage() {
   const chartProjectedFutureValue = useMemo(() => {
     if (!goal || !goal.startDate || !goal.dueDate) return undefined;
 
-    const startDate = parseISO(goal.startDate);
-    const dueDate = parseISO(goal.dueDate);
+    // Use parseGoalDate to avoid timezone conversion issues
+    const startDate = parseGoalDate(goal.startDate);
+    const dueDate = parseGoalDate(goal.dueDate);
     const startValue = chartStartValue;
     const annualReturnRate = goal.targetReturnRate ?? 0;
 
@@ -113,7 +114,7 @@ export default function GoalDetailsPage() {
   }, [goal, chartStartValue]);
 
   // Use the new hook for chart data - pass startValue and projectedFutureValue for consistency
-  const { chartData, allocationValues, isLoading: isChartLoading } = useGoalValuationHistory(goal, timePeriod, {
+  const { chartData, isLoading: isChartLoading } = useGoalValuationHistory(goal, timePeriod, {
     startValue: chartStartValue,
     projectedFutureValue: chartProjectedFutureValue,
   });
@@ -136,20 +137,9 @@ export default function GoalDetailsPage() {
     );
   }
 
-  // Get actual values from hook - but prefer chart's actual value for consistency with chart display
-  let currentAmount = goalProgress?.currentValue ?? 0;
-
-  // Use the chart's latest actual value as the source of truth for "Current Progress"
-  // This ensures the Overview matches what's shown on the chart's actual line
-  if (chartData && chartData.length > 0) {
-    // Find the latest point with an actual value (working backwards from the end)
-    for (let i = chartData.length - 1; i >= 0; i--) {
-      if (chartData[i].actual !== null) {
-        currentAmount = chartData[i].actual as number;
-        break;
-      }
-    }
-  }
+  // Get actual values from useGoalProgress hook - this is the single source of truth
+  // for Current Progress and Contributed Values in the allocation table
+  const currentAmount = goalProgress?.currentValue ?? 0;
 
   // Recalculate progress based on the chart-consistent current amount
   const progress = goal?.targetAmount && goal.targetAmount > 0
@@ -161,8 +151,9 @@ export default function GoalDetailsPage() {
   let onTrack = true;
 
   if (goal && goal.startDate && goal.dueDate && goalProgress) {
-    const startDate = parseISO(goal.startDate);
-    const dueDate = parseISO(goal.dueDate);
+    // Use parseGoalDate to avoid timezone conversion issues
+    const startDate = parseGoalDate(goal.startDate);
+    const dueDate = parseGoalDate(goal.dueDate);
     const startValue = goalProgress.startValue ?? 0; // Initial principal (sum of initial contributions)
     const annualReturnRate = goal.targetReturnRate ?? 0;
 
@@ -557,21 +548,7 @@ export default function GoalDetailsPage() {
               )
             }
             currentAccountValues={currentAccountValuesFromValuations}
-            getAllocationValue={(allocationId) => {
-              // Use chart-consistent per-allocation values
-              // Each allocation's value is calculated independently based on its own account's growth
-              const allocation = allocations?.find(a => a.id === allocationId);
-              if (!allocation) return getAllocationValue(allocationId);
-
-              // Get the chart-calculated value for this allocation's account
-              const chartValue = allocationValues.get(allocation.accountId);
-              if (chartValue !== undefined) {
-                return chartValue;
-              }
-
-              // Fallback to original calculation if chart value not available
-              return getAllocationValue(allocationId);
-            }}
+            getAllocationValue={getAllocationValue}
             onAllocationUpdated={async (allocation) => {
               await updateAllocationMutation.mutateAsync(allocation);
             }}

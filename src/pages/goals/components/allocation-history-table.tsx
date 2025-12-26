@@ -112,13 +112,12 @@ export function AllocationHistoryTable({
             <tbody>
               {allocations.map((alloc) => {
                 const account = accounts.get(alloc.accountId);
-                const currentValue = currentAccountValues.get(alloc.accountId) || 0;
                 // Handle incomplete data or legacy field names
                 const initialContribution = alloc.initialContribution;
                 const allocatedPercent = alloc.allocatedPercent;
 
-                // Calculate contributed value using the provided function or fallback logic
-                const contributedValue = getAllocationValue?.(alloc.id) ?? (initialContribution + (currentValue - initialContribution) * (allocatedPercent / 100));
+                // Calculate contributed value using the provided function
+                const contributedValue = getAllocationValue?.(alloc.id) ?? 0;
 
                 return (
                   <React.Fragment key={alloc.id}>

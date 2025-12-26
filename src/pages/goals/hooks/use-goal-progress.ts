@@ -5,9 +5,8 @@ import { useLatestValuations } from "@/hooks/use-latest-valuations";
 import { QueryKeys } from "@/lib/query-keys";
 import type { AccountValuation, Goal, GoalAllocation } from "@/lib/types";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { parseISO } from "date-fns";
 import { useMemo } from "react";
-import { calculateProjectedValueByDate, isGoalOnTrack } from "../lib/goal-utils";
+import { calculateProjectedValueByDate, extractDateString, getTodayString, isGoalOnTrack, parseGoalDate } from "../lib/goal-utils";
 
 // ============ TYPES ============
 export interface GoalProgress {
@@ -45,7 +44,11 @@ function buildHistoryRequests(goals: Goal[] | undefined, allocations: GoalAlloca
     const goal = goals.find((g) => g.id === alloc.goalId);
     if (!goal) return;
 
-    const startDate = alloc.allocationDate || goal.startDate;
+    const rawDate = alloc.allocationDate || goal.startDate;
+    if (!rawDate) return;
+
+    // Use utility to extract YYYY-MM-DD format (backend expects this format)
+    const startDate = extractDateString(rawDate);
     if (!startDate) return;
 
     const key = `${alloc.accountId}|${startDate}`;
@@ -56,13 +59,6 @@ function buildHistoryRequests(goals: Goal[] | undefined, allocations: GoalAlloca
   });
 
   return result;
-}
-
-/**
- * Get today's date in YYYY-MM-DD format
- */
-function getTodayString(): string {
-  return new Date().toISOString().split("T")[0];
 }
 
 /**
@@ -125,7 +121,9 @@ function buildGoalProgressMap(
       if (alloc.allocationDate && alloc.allocationDate > todayStr) return;
 
       const currentAccountValuation = valuationMap.get(alloc.accountId);
-      const baselineDate = alloc.allocationDate || goal.startDate;
+      const rawBaselineDate = alloc.allocationDate || goal.startDate;
+      // Use utility to extract YYYY-MM-DD format to match historyMap keys
+      const baselineDate = extractDateString(rawBaselineDate);
       const startAccountValue = baselineDate ? historyMap.get(`${alloc.accountId}|${baselineDate}`) ?? 0 : 0;
 
       const allocatedValue = calculateAllocationValue(alloc, goal, currentAccountValuation, startAccountValue);
@@ -146,7 +144,7 @@ function buildGoalProgressMap(
 
     let projectedValue = 0;
     if (goal.startDate) {
-      const goalStartDate = parseISO(goal.startDate);
+      const goalStartDate = parseGoalDate(goal.startDate);
       const today = new Date();
       const dailyInvestment = monthlyInvestment / 30;
       projectedValue = calculateProjectedValueByDate(
